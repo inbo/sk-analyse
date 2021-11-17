@@ -1,0 +1,19 @@
+# Stierkikker afvangsten datacleaning
+
+Om dit script te laten lopen moet je een *.renviron* bestand aanmaken in de github map van deze repo (standaard vind je deze map in *C:\Users\%username%\Documents\GitHub\sk-analyse)* met daarin de volgende gegevens:
+
+**email = "%je werk email%"**
+
+Dit doen we om dat het bad practice is om email adressen en authenticatie in scripts te zetten. 
+
+Je maakt dit type bestand door eerst in kladblok (of een andere tekstverwerker zoals notepad++) een bestandje aan te maken en vervolgens de extensie te veranderen in *.renviron*
+
+```{r libraries}
+library(googlesheets4)
+library(tidyverse)
+```
+
+```{r authenticate}
+gs4_auth(email = email)
+```
+
