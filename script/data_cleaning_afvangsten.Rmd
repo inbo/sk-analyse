@@ -46,6 +46,14 @@ not_linked <- data %>%
 # Resterende niet gekoppelde acties zijn minder relevant (17/11: 24 acties)
 ```
 
+```{r datacleaning}
+#remove niet gekoppelde acties
+data <- data %>% 
   filter(!is.na(UUID))
+
+afvangsten_per_fuik <- rawdata %>% 
+  group_by()
+  
+afvangsten_per_dag <-
 ```
 
