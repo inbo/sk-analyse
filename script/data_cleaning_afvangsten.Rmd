@@ -15,7 +15,7 @@ library(tidylog)
 ```
 
 ```{r authenticate}
-gs4_auth(email = email)
+gs4_auth(email = Sys.getenv("email"))
 ```
 
 ```{r get data}
