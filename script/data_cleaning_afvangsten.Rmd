@@ -24,6 +24,28 @@ rawdata <- read_sheet("1_cBgfSjnxakLAQ9uGunDt_-Mk4L0uDx2-qv6cKCzkSk",
 
 vijvers <- read_sheet("1_cBgfSjnxakLAQ9uGunDt_-Mk4L0uDx2-qv6cKCzkSk",
                       sheet = "Andere Vijvers") %>% 
+  filter(!is.na(UUID)) %>% 
+  mutate(Locatie = tolower(Locatie))
+```
+
+```{r combine datasets}
+data <- rawdata %>% 
+  mutate(Locatie = tolower(`Vijver - Andere`),
+         Locatie = case_when(Locatie == "arendonk 2 b" ~ "arendonk 2b",
+                             Locatie == "arendonk - visput" ~ "arendonk-visput",
+                             Locatie == "sportcomplex heikant( gem. visvijver)" ~ "arendonk-visput",
+                             Locatie == "arendonk sportcomplex" ~ "arendonk-visput",
+                             TRUE ~ Locatie)) %>% 
+  left_join(vijvers)
+
+#check join
+not_linked <- data %>% 
+  filter(is.na(UUID)) %>% 
+  distinct(Locatie)
+
+# Resterende niet gekoppelde acties zijn minder relevant (17/11: 24 acties)
+```
+
   filter(!is.na(UUID))
 ```
 
