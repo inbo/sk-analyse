@@ -20,7 +20,9 @@ gs4_auth(email = Sys.getenv("email"))
 
 ```{r get data}
 rawdata <- read_sheet("1_cBgfSjnxakLAQ9uGunDt_-Mk4L0uDx2-qv6cKCzkSk",
-                      sheet = "Formulierreacties 1")
+                      sheet = "Formulierreacties 1",
+                      col_types = "c") %>% 
+  select(-contains("fuiken?"))
 
 vijvers <- read_sheet("1_cBgfSjnxakLAQ9uGunDt_-Mk4L0uDx2-qv6cKCzkSk",
                       sheet = "Andere Vijvers") %>% 
@@ -29,13 +31,18 @@ vijvers <- read_sheet("1_cBgfSjnxakLAQ9uGunDt_-Mk4L0uDx2-qv6cKCzkSk",
 ```
 
 ```{r combine datasets}
+#fix enkele gekende problemen 
 data <- rawdata %>% 
   mutate(Locatie = tolower(`Vijver - Andere`),
          Locatie = case_when(Locatie == "arendonk 2 b" ~ "arendonk 2b",
                              Locatie == "arendonk - visput" ~ "arendonk-visput",
                              Locatie == "sportcomplex heikant( gem. visvijver)" ~ "arendonk-visput",
                              Locatie == "arendonk sportcomplex" ~ "arendonk-visput",
-                             TRUE ~ Locatie)) %>% 
+                             TRUE ~ Locatie),
+         `Fuik 1 - AV` = case_when(Tijdstempel == "23-5-2018 15:52:13" ~ "1",
+                                   TRUE ~ `Fuik 1 - AV`),
+         `Fuik 1 - Opmerkingen` = case_when(Tijdstempel == "23-5-2018 15:52:13" ~ "AV (poten niet meegeteld) 16cm",
+                                   TRUE ~ `Fuik 1 - Opmerkingen`)) %>% 
   left_join(vijvers)
 
 #check join
@@ -47,13 +54,61 @@ not_linked <- data %>%
 ```
 
 ```{r datacleaning}
-#remove niet gekoppelde acties
-data <- data %>% 
-  filter(!is.na(UUID))
+table(data$`Wat wil je melden`)
 
-afvangsten_per_fuik <- rawdata %>% 
-  group_by()
-  
-afvangsten_per_dag <-
+#verwijder niet gekoppelde acties & onnodige kolommen
+data_afvangsten <- data %>% 
+  filter(!is.na(UUID),
+         grepl("Afvangst", `Wat wil je melden`))%>% 
+  select(-contains("Vijver"), 
+         -`E-mailadres`, 
+         -`Aantal werknemers`,
+         -Startuur,
+         -Einduur,
+         -contains("Bijvangst"),
+         -`Gemeente/Deelgemeente`,
+         -X,
+         -Y,
+         -Invuller,
+         -eDNA_Status,
+         -Latest_Update,
+         -Laatste_vangst,
+         -Larven,
+         -`Post-Metamorfen`,
+         -`Aantal fuiken geplaatst`,
+         -`Start vangstperiode`,
+         -`Eind vangstperiode`,
+         -Gebied, 
+         -Nummer)
+
+afvangsten_per_fuik <- data_afvangsten %>% 
+  group_by(Datum, Locatie) %>% 
+  pivot_longer(contains("Fuik", ignore.case = FALSE)) %>% 
+  separate(name, c("fuikNr", "type"), " - ") %>% 
+  pivot_wider(names_from = type, values_from = value) %>% 
+  separate(`Wat wil je melden`, c("actie", 
+                                  "fuiktype_1", 
+                                  "fuiktype_2", 
+                                  "fuiklengte")) %>% 
+  mutate(fuiktype = paste(fuiktype_1,
+                          fuiktype_2)) %>% 
+  select(-fuiktype_1,
+         -fuiktype_2) %>% 
+  mutate(L00 = as.numeric(L00),
+         L0 = as.numeric(L0),
+         L1 = as.numeric(L1),
+         L2 = as.numeric(L2),
+         M1 = as.numeric(M1),
+         M2 = as.numeric(M2),
+         AM = as.numeric(AM),
+         AV = as.numeric(AV))
+
+
+
+# Check data per fuik
+table(afvangsten_per_fuik$actie, useNA = "ifany")
+table(afvangsten_per_fuik$fuiktype, useNA = "ifany") #NA's zijn meestal dubbele fuiken maar niet 100%
+
+#afvangsten_per_dag <-
 ```
 
