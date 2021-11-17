@@ -11,9 +11,19 @@ Je maakt dit type bestand door eerst in kladblok (of een andere tekstverwerker z
 ```{r libraries}
 library(googlesheets4)
 library(tidyverse)
+library(tidylog)
 ```
 
 ```{r authenticate}
 gs4_auth(email = email)
+```
+
+```{r get data}
+rawdata <- read_sheet("1_cBgfSjnxakLAQ9uGunDt_-Mk4L0uDx2-qv6cKCzkSk",
+                      sheet = "Formulierreacties 1")
+
+vijvers <- read_sheet("1_cBgfSjnxakLAQ9uGunDt_-Mk4L0uDx2-qv6cKCzkSk",
+                      sheet = "Andere Vijvers") %>% 
+  filter(!is.na(UUID))
 ```
 
