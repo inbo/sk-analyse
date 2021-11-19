@@ -101,9 +101,14 @@ afvangsten_per_fuik <- data_afvangsten %>%
          M1 = as.numeric(M1),
          M2 = as.numeric(M2),
          AM = as.numeric(AM),
-         AV = as.numeric(AV))
-
-
+         AV = as.numeric(AV)) %>% 
+  ungroup() %>% 
+  group_by(Datum, Locatie, fuikNr) %>% 
+  mutate(larven_fuik = sum(L0,L1,L2, na.rm = TRUE),
+         totaal_fuik = sum(L00,L0,L1,L2,M1,M2,AM,AV, na.rm = TRUE),
+         correctie_factor = 1,
+         larven_corrected = larven_fuik*correctie_factor,
+         totaal_fuik_corrected = totaal_fuik*correctie_factor)
 
 # Check data per fuik
 table(afvangsten_per_fuik$actie, useNA = "ifany")
@@ -112,3 +117,9 @@ table(afvangsten_per_fuik$fuiktype, useNA = "ifany") #NA's zijn meestal dubbele 
 #afvangsten_per_dag <-
 ```
 
+De correctie factor staat nu op in alle gevallen op 1. 
+dmv case_when kan je conditioneel deze factor herberekenen.
+voorbeeld:
+mutate(correctie_factor = case_when(fuiktype == "enkele fuik" ~ 0.5,
+                                    fuiklengte == "13m" ~ 0.75,
+                                    TRUE ~ 1))
