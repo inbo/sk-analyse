@@ -30,7 +30,12 @@ rawdata <- read_sheet("1_cBgfSjnxakLAQ9uGunDt_-Mk4L0uDx2-qv6cKCzkSk",
 vijvers <- read_sheet("1_cBgfSjnxakLAQ9uGunDt_-Mk4L0uDx2-qv6cKCzkSk",
                       sheet = "Andere Vijvers") %>% 
   filter(!is.na(UUID)) %>% 
-  mutate(Locatie = tolower(Locatie))
+  mutate(Locatie = tolower(Locatie)) %>% 
+  separate(latlong, c("lat", 
+                      "long"),
+           ", ") %>% 
+  mutate(lat = as.numeric(lat),
+         long = as.numeric(long))
 ```
 
 ```{r combine datasets}
@@ -116,7 +121,9 @@ afvangsten_per_fuik <- data_afvangsten %>%
          M2 = as.numeric(M2),
          AM = as.numeric(AM),
          AV = as.numeric(AV),
-         no_fuiken = as.numeric(`Aantal fuiken (Totaal)`)) %>% 
+         no_fuiken = as.numeric(`Aantal fuiken (Totaal)`),
+         Datum = as.Date(Datum, format = "%d-%m-%Y"),
+         Tijdstempel = parse_datetime(Tijdstempel, format = "%d-%m-%Y %H:%M:%S")) %>% 
   ungroup() %>% 
   group_by(Datum, Locatie, fuikNr) %>% 
   mutate(larven_fuik = sum(L0,L1,L2, na.rm = TRUE),
@@ -124,7 +131,8 @@ afvangsten_per_fuik <- data_afvangsten %>%
          correctie_factor = 1,
          larven_corrected = larven_fuik*correctie_factor,
          totaal_fuik_corrected = totaal_fuik*correctie_factor) %>% 
-  select(-`Aantal fuiken (Totaal)`)
+  select(-`Aantal fuiken (Totaal)`) %>% 
+  arrange(Datum, Locatie, fuikNr)
 
 # Check data per fuik
 table(afvangsten_per_fuik$actie, useNA = "ifany")
@@ -147,7 +155,8 @@ afvangsten_per_vangst <- afvangsten_per_fuik %>%
             cpue_larven = larven_vangst/no_fuiken,
             cpue_larven_corrected = larven_vangst_corrected/no_fuiken,
             cpue_totaal = totaal_vangst/no_fuiken,
-            cpue_totaal_corrected = totaal_vangst_corrected/no_fuiken)
+            cpue_totaal_corrected = totaal_vangst_corrected/no_fuiken)%>% 
+  arrange(Datum, Locatie)
 
 # Controle
 n_distinct(afvangsten_per_fuik$Datum, afvangsten_per_fuik$Locatie) == nrow(afvangsten_per_vangst) #Moet TRUE zijn
