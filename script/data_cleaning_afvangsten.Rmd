@@ -137,6 +137,8 @@ write_csv(afvangsten_per_fuik, "./interim/afvangsten_per_fuik.csv")
 ```{r datacleaning - afvangsten per vangstdag}
 afvangsten_per_vangst <- afvangsten_per_fuik %>% 
   group_by(Datum, Locatie) %>% 
+  mutate(no_fuiken = case_when(is.na(no_fuiken) ~ as.numeric(n_distinct(fuikNr)),
+                               TRUE ~ no_fuiken)) %>% 
   summarise(larven_vangst = sum(larven_fuik, na.rm = TRUE),
             larven_vangst_corrected = sum(larven_corrected, na.rm = TRUE),
             totaal_vangst = sum(totaal_fuik, na.rm = TRUE),
