@@ -38,7 +38,13 @@ vijvers <- read_sheet("1_cBgfSjnxakLAQ9uGunDt_-Mk4L0uDx2-qv6cKCzkSk",
          long = as.numeric(long))
 ```
 
-```{r combine datasets}
+## Vijvers
+```{r koppeling met blauwe-laag}
+#nog uit te werken
+```
+
+## Combine datasets
+```{r combine vijvers with actiedata}
 #fix enkele gekende problemen 
 data <- rawdata %>% 
   mutate(Locatie = tolower(`Vijver - Andere`),
