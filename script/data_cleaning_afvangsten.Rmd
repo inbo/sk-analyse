@@ -8,6 +8,7 @@ Dit doen we om dat het bad practice is om email adressen en authenticatie in scr
 
 Je maakt dit type bestand door eerst in kladblok (of een andere tekstverwerker zoals notepad++) een bestandje aan te maken en vervolgens de extensie te veranderen in *.renviron*
 
+# Setup
 ```{r libraries}
 library(googlesheets4)
 library(tidyverse)
@@ -18,6 +19,8 @@ library(tidylog)
 gs4_auth(email = Sys.getenv("email"))
 ```
 
+# Data
+## General
 ```{r get data}
 rawdata <- read_sheet("1_cBgfSjnxakLAQ9uGunDt_-Mk4L0uDx2-qv6cKCzkSk",
                       sheet = "Formulierreacties 1",
@@ -53,7 +56,16 @@ not_linked <- data %>%
 # Resterende niet gekoppelde acties zijn minder relevant (17/11: 24 acties)
 ```
 
-```{r datacleaning}
+## Datacleaning
+
+De correctie factor staat nu op in alle gevallen op 1. 
+dmv case_when kan je conditioneel deze factor herberekenen.
+voorbeeld:
+mutate(correctie_factor = case_when(fuiktype == "enkele fuik" ~ 0.5,
+                                    fuiklengte == "13m" ~ 0.75,
+                                    TRUE ~ 1))
+
+```{r datacleaning - general}
 table(data$`Wat wil je melden`)
 
 #verwijder niet gekoppelde acties & onnodige kolommen
@@ -80,7 +92,9 @@ data_afvangsten <- data %>%
          -`Eind vangstperiode`,
          -Gebied, 
          -Nummer)
+```
 
+```{r datacleaning - afvangsten per fuik}
 afvangsten_per_fuik <- data_afvangsten %>% 
   group_by(Datum, Locatie) %>% 
   pivot_longer(contains("Fuik", ignore.case = FALSE)) %>% 
@@ -117,9 +131,6 @@ table(afvangsten_per_fuik$fuiktype, useNA = "ifany") #NA's zijn meestal dubbele 
 #afvangsten_per_dag <-
 ```
 
-De correctie factor staat nu op in alle gevallen op 1. 
-dmv case_when kan je conditioneel deze factor herberekenen.
-voorbeeld:
-mutate(correctie_factor = case_when(fuiktype == "enkele fuik" ~ 0.5,
-                                    fuiklengte == "13m" ~ 0.75,
-                                    TRUE ~ 1))
+```{r datacleaning - afvangsten per vangstdag}
+```
+
