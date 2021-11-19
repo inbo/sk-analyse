@@ -135,5 +135,22 @@ write_csv(afvangsten_per_fuik, "./interim/afvangsten_per_fuik.csv")
 ```
 
 ```{r datacleaning - afvangsten per vangstdag}
+afvangsten_per_vangst <- afvangsten_per_fuik %>% 
+  group_by(Datum, Locatie) %>% 
+  summarise(larven_vangst = sum(larven_fuik, na.rm = TRUE),
+            larven_vangst_corrected = sum(larven_corrected, na.rm = TRUE),
+            totaal_vangst = sum(totaal_fuik, na.rm = TRUE),
+            totaal_vangst_corrected = sum(totaal_fuik_corrected, na.rm = TRUE),
+            no_fuiken = max(no_fuiken, na.rm = TRUE),
+            cpue_larven = larven_vangst/no_fuiken,
+            cpue_larven_corrected = larven_vangst_corrected/no_fuiken,
+            cpue_totaal = totaal_vangst/no_fuiken,
+            cpue_totaal_corrected = totaal_vangst_corrected/no_fuiken)
+
+# Controle
+n_distinct(afvangsten_per_fuik$Datum, afvangsten_per_fuik$Locatie) == nrow(afvangsten_per_vangst) #Moet TRUE zijn
+
+# Export
+write_csv(afvangsten_per_vangst, "./interim/afvangsten_per_vangst.csv")
 ```
 
