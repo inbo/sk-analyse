@@ -115,20 +115,23 @@ afvangsten_per_fuik <- data_afvangsten %>%
          M1 = as.numeric(M1),
          M2 = as.numeric(M2),
          AM = as.numeric(AM),
-         AV = as.numeric(AV)) %>% 
+         AV = as.numeric(AV),
+         no_fuiken = as.numeric(`Aantal fuiken (Totaal)`)) %>% 
   ungroup() %>% 
   group_by(Datum, Locatie, fuikNr) %>% 
   mutate(larven_fuik = sum(L0,L1,L2, na.rm = TRUE),
          totaal_fuik = sum(L00,L0,L1,L2,M1,M2,AM,AV, na.rm = TRUE),
          correctie_factor = 1,
          larven_corrected = larven_fuik*correctie_factor,
-         totaal_fuik_corrected = totaal_fuik*correctie_factor)
+         totaal_fuik_corrected = totaal_fuik*correctie_factor) %>% 
+  select(-`Aantal fuiken (Totaal)`)
 
 # Check data per fuik
 table(afvangsten_per_fuik$actie, useNA = "ifany")
 table(afvangsten_per_fuik$fuiktype, useNA = "ifany") #NA's zijn meestal dubbele fuiken maar niet 100%
 
-#afvangsten_per_dag <-
+#Export
+write_csv(afvangsten_per_fuik, "./interim/afvangsten_per_fuik.csv")
 ```
 
 ```{r datacleaning - afvangsten per vangstdag}
