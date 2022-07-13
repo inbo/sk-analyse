@@ -104,18 +104,25 @@ data_afvangsten <- data %>%
 
 ```{r datacleaning - afvangsten per fuik}
 afvangsten_per_fuik <- data_afvangsten %>% 
+  filter(!is.na(Tijdstempel)) %>% 
   group_by(Datum, Locatie) %>% 
-  pivot_longer(contains("Fuik", ignore.case = FALSE)) %>% 
-  separate(name, c("fuikNr", "type"), " - ") %>% 
+  pivot_longer(contains("Fuik", ignore.case = FALSE), 
+               values_to = "value",
+               values_ptypes = character()) %>% 
+  mutate(value = case_when(value == "-1" ~ as.character("NA"),
+                           TRUE ~ value)) %>% 
+  separate(name, c("fuikNr", "type"), " - ",
+           convert = TRUE) %>% 
   pivot_wider(names_from = type, values_from = value) %>% 
   separate(`Wat wil je melden`, c("actie", 
                                   "fuiktype_1", 
                                   "fuiktype_2", 
-                                  "fuiklengte")) %>% 
+                                  "fuiklengte"),
+           convert = TRUE) %>% 
   mutate(fuiktype = paste(fuiktype_1,
                           fuiktype_2)) %>% 
   select(-fuiktype_1,
-         -fuiktype_2) %>% 
+         -fuiktype_2) %>%
   mutate(L00 = as.numeric(L00),
          L0 = as.numeric(L0),
          L1 = as.numeric(L1),
