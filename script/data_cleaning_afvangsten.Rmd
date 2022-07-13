@@ -1,0 +1,170 @@
+# Stierkikker afvangsten datacleaning
+
+Om dit script te laten lopen moet je een *.renviron* bestand aanmaken in de github map van deze repo (standaard vind je deze map in *C:\Users\%username%\Documents\GitHub\sk-analyse)* met daarin de volgende gegevens:
+
+**email = "%je werk email%"**
+
+Dit doen we om dat het bad practice is om email adressen en authenticatie in scripts te zetten. 
+
+Je maakt dit type bestand door eerst in kladblok (of een andere tekstverwerker zoals notepad++) een bestandje aan te maken en vervolgens de extensie te veranderen in *.renviron*
+
+# Setup
+```{r libraries}
+library(googlesheets4)
+library(tidyverse)
+library(tidylog)
+```
+
+```{r authenticate}
+gs4_auth(email = Sys.getenv("email"))
+```
+
+# Data
+## General
+```{r get data}
+rawdata <- read_sheet("1_cBgfSjnxakLAQ9uGunDt_-Mk4L0uDx2-qv6cKCzkSk",
+                      sheet = "Formulierreacties 1",
+                      col_types = "c") %>% 
+  select(-contains("fuiken?"))
+
+vijvers <- read_sheet("1_cBgfSjnxakLAQ9uGunDt_-Mk4L0uDx2-qv6cKCzkSk",
+                      sheet = "Andere Vijvers") %>% 
+  filter(!is.na(UUID)) %>% 
+  mutate(Locatie = tolower(Locatie)) %>% 
+  separate(latlong, c("lat", 
+                      "long"),
+           ", ") %>% 
+  mutate(lat = as.numeric(lat),
+         long = as.numeric(long))
+```
+
+## Vijvers
+```{r koppeling met blauwe-laag}
+#nog uit te werken
+```
+
+## Combine datasets
+```{r combine vijvers with actiedata}
+#fix enkele gekende problemen 
+data <- rawdata %>% 
+  mutate(Locatie = tolower(`Vijver - Andere`),
+         Locatie = case_when(Locatie == "arendonk 2 b" ~ "arendonk 2b",
+                             Locatie == "arendonk - visput" ~ "arendonk-visput",
+                             Locatie == "sportcomplex heikant( gem. visvijver)" ~ "arendonk-visput",
+                             Locatie == "arendonk sportcomplex" ~ "arendonk-visput",
+                             TRUE ~ Locatie),
+         `Fuik 1 - AV` = case_when(Tijdstempel == "23-5-2018 15:52:13" ~ "1",
+                                   TRUE ~ `Fuik 1 - AV`),
+         `Fuik 1 - Opmerkingen` = case_when(Tijdstempel == "23-5-2018 15:52:13" ~ "AV (poten niet meegeteld) 16cm",
+                                   TRUE ~ `Fuik 1 - Opmerkingen`)) %>% 
+  left_join(vijvers)
+
+#check join
+not_linked <- data %>% 
+  filter(is.na(UUID)) %>% 
+  distinct(Locatie)
+
+# Resterende niet gekoppelde acties zijn minder relevant (17/11: 24 acties)
+```
+
+## Datacleaning
+
+De correctie factor staat nu op in alle gevallen op 1. 
+dmv case_when kan je conditioneel deze factor herberekenen.
+voorbeeld:
+mutate(correctie_factor = case_when(fuiktype == "enkele fuik" ~ 0.5,
+                                    fuiklengte == "13m" ~ 0.75,
+                                    TRUE ~ 1))
+
+```{r datacleaning - general}
+table(data$`Wat wil je melden`)
+
+#verwijder niet gekoppelde acties & onnodige kolommen
+data_afvangsten <- data %>% 
+  filter(!is.na(UUID),
+         grepl("Afvangst", `Wat wil je melden`))%>% 
+  select(-contains("Vijver"), 
+         -`E-mailadres`, 
+         -`Aantal werknemers`,
+         -Startuur,
+         -Einduur,
+         -contains("Bijvangst"),
+         -Invuller,
+         -eDNA_Status,
+         -Latest_Update,
+         -Laatste_vangst,
+         -Larven,
+         -`Post-Metamorfen`,
+         -`Aantal fuiken geplaatst`,
+         -`Start vangstperiode`,
+         -`Eind vangstperiode`,
+         -Gebied, 
+         -Nummer)
+```
+
+```{r datacleaning - afvangsten per fuik}
+afvangsten_per_fuik <- data_afvangsten %>% 
+  group_by(Datum, Locatie) %>% 
+  pivot_longer(contains("Fuik", ignore.case = FALSE)) %>% 
+  separate(name, c("fuikNr", "type"), " - ") %>% 
+  pivot_wider(names_from = type, values_from = value) %>% 
+  separate(`Wat wil je melden`, c("actie", 
+                                  "fuiktype_1", 
+                                  "fuiktype_2", 
+                                  "fuiklengte")) %>% 
+  mutate(fuiktype = paste(fuiktype_1,
+                          fuiktype_2)) %>% 
+  select(-fuiktype_1,
+         -fuiktype_2) %>% 
+  mutate(L00 = as.numeric(L00),
+         L0 = as.numeric(L0),
+         L1 = as.numeric(L1),
+         L2 = as.numeric(L2),
+         M1 = as.numeric(M1),
+         M2 = as.numeric(M2),
+         AM = as.numeric(AM),
+         AV = as.numeric(AV),
+         no_fuiken = as.numeric(`Aantal fuiken (Totaal)`),
+         Datum = as.Date(Datum, format = "%d-%m-%Y"),
+         Tijdstempel = parse_datetime(Tijdstempel, format = "%d-%m-%Y %H:%M:%S")) %>% 
+  ungroup() %>% 
+  group_by(Datum, Locatie, fuikNr) %>% 
+  mutate(larven_fuik = sum(L0,L1,L2, na.rm = TRUE),
+         totaal_fuik = sum(L00,L0,L1,L2,M1,M2,AM,AV, na.rm = TRUE),
+         correctie_factor = 1,
+         larven_corrected = larven_fuik*correctie_factor,
+         totaal_fuik_corrected = totaal_fuik*correctie_factor) %>% 
+  select(-`Aantal fuiken (Totaal)`) %>% 
+  arrange(Datum, Locatie, fuikNr)
+
+# Check data per fuik
+table(afvangsten_per_fuik$actie, useNA = "ifany")
+table(afvangsten_per_fuik$fuiktype, useNA = "ifany") #NA's zijn meestal dubbele fuiken maar niet 100%
+
+#Export
+write_csv(afvangsten_per_fuik, "./interim/afvangsten_per_fuik.csv")
+```
+
+```{r datacleaning - afvangsten per vangstdag}
+afvangsten_per_vangst <- afvangsten_per_fuik %>% 
+  group_by(Datum, Locatie) %>% 
+  mutate(no_fuiken = case_when(is.na(no_fuiken) ~ as.numeric(n_distinct(fuikNr)),
+                               TRUE ~ no_fuiken)) %>% 
+  summarise(larven_vangst = sum(larven_fuik, na.rm = TRUE),
+            larven_vangst_corrected = sum(larven_corrected, na.rm = TRUE),
+            totaal_vangst = sum(totaal_fuik, na.rm = TRUE),
+            totaal_vangst_corrected = sum(totaal_fuik_corrected, na.rm = TRUE),
+            no_fuiken = max(no_fuiken, na.rm = TRUE),
+            cpue_larven = larven_vangst/no_fuiken,
+            cpue_larven_corrected = larven_vangst_corrected/no_fuiken,
+            cpue_totaal = totaal_vangst/no_fuiken,
+            cpue_totaal_corrected = totaal_vangst_corrected/no_fuiken)%>% 
+  arrange(Datum, Locatie)
+
+# Controle
+n_distinct(afvangsten_per_fuik$Datum, afvangsten_per_fuik$Locatie) == nrow(afvangsten_per_vangst) #Moet TRUE zijn
+
+# Export
+write_csv(afvangsten_per_vangst, "./interim/afvangsten_per_vangst.csv")
+```
+
