@@ -1,0 +1,175 @@
+---
+title: "Management_graphs"
+author: "Sander Devisscher"
+date: '2022-08-17'
+output: html_document
+---
+
+```{r setup, include=FALSE}
+library(rgbif)
+library(geojsonsf)
+library(sf)
+library(tidyverse)
+```
+
+```{r get credentials}
+gbif_email <- Sys.getenv("email")
+gbif_pwd <- Sys.getenv("gbif_pwd")
+gbif_user <- Sys.getenv("gbif_user")
+```
+
+Currently there is only 1 dataset but in the future there will be 2
+
+```{r get data from gbif}
+datasetkeys <- c("ea95fd9b-58dc-4e48-b51f-9380e9804607")
+taxonkey <- c(2427091)
+
+gbif_downloadKey <- occ_download(pred_in("datasetKey", datasetkeys),
+                                 pred("taxonKey", taxonkey),
+                                 user = gbif_user,
+                                 pwd = gbif_pwd,
+                                 email = gbif_email)
+
+occ_download_wait(gbif_downloadKey)
+# Execute download request
+gbif_download <- occ_download_get(gbif_downloadKey, 
+                                  path = tempdir(), 
+                                  overwrite = TRUE)
+
+cleanData <- occ_download_import(x = gbif_download) 
+```
+
+```{r get verbatim data}
+for(d in datasetkeys){
+  extractDir <- file.path(tempdir(), "gbifdownload", d)
+  utils::unzip(gbif_download[[1]], exdir = extractDir, overwrite = TRUE)
+  verbatimFile <- list.files(extractDir, pattern = "verbatim", full.names = TRUE)
+  verbatimData <- read.table(file = verbatimFile, sep = "\t", header = TRUE) %>% 
+    select(gbifID, lifeStage, verbatimLocality) 
+  
+  lifeStages <- verbatimData %>% 
+    separate(lifeStage, 
+             sep = ";",
+             into = c("stage1",
+                      "stage2",
+                      "stage3",
+                      "stage4",
+                      "stage5",
+                      "stage6",
+                      "stage7",
+                      "stage8",
+                      "stage9",
+                      "stage10",
+                      "stage11",
+                      "stage12",
+                      "stage13",
+                      "stage14",
+                      "stage15",
+                      "stage16",
+                      "stage17")) %>% 
+    pivot_longer(cols = contains("stage"),
+                 names_to = "lifestage_nr",
+                 values_to = "lifeStage") %>% 
+    select(-lifestage_nr) %>% 
+    mutate(lifeStage = str_remove(lifeStage, " "),
+           lifeStage = str_remove(lifeStage, "lenght:")) %>% 
+    separate(lifeStage, sep = ":",
+             into = c("lifeStage2",
+                      "n")) %>% 
+    mutate(n = as.numeric(n))
+}
+
+```
+
+
+```{r add municipality & province}
+locations <- cleanData %>% 
+  group_by(locationID) %>% 
+  summarise(decimalLatitude = first(decimalLatitude),
+            decimalLongitude = first(decimalLongitude)) %>% 
+  ungroup() %>% 
+  filter(locationID != "")
+
+locations <- st_as_sf(locations, 
+                      coords = c("decimalLongitude", "decimalLatitude"),
+                      crs = 4326)
+
+locations <- st_transform(locations, 4326)
+
+gemeentes <- geojson_sf("../backoffice-wild-analyse/Data/Spatial/Gemeentes.geojson")
+gemeentes <- st_transform(gemeentes, 4326)
+provincies <- geojson_sf("../backoffice-wild-analyse/Data/Spatial/provinces.geojson")
+st_crs(provincies) <- st_crs(31300)
+provincies <- st_transform(provincies, 4326)
+
+locations_intersect <- st_intersection(gemeentes, locations)
+
+locations <- locations_intersect %>% 
+  mutate(provincie = case_when(NISCODE > 70000 ~ "Limburg",
+                               NISCODE > 40000 ~ "Oost-Vlaanderen",
+                               NISCODE > 30000 ~ "West-Vlaanderen",
+                               NISCODE > 20000 ~ "Vlaams-Brabant",
+                               NISCODE > 10000 ~ "Antwerpen",
+                               TRUE ~ NA_character_)) %>% 
+  select(locationID, NISCODE, NAAM, provincie)
+
+locations <- st_set_geometry(locations, NULL)
+
+cleanData <- cleanData %>% 
+  left_join(locations)
+```
+
+```{r total individual caught}
+total_by_year <- cleanData %>% 
+  group_by(year) %>% 
+  summarise(n = sum(individualCount, na.rm = TRUE)) %>% 
+  ggplot(aes(x = year, y = n)) +
+  geom_bar(stat = "identity")
+```
+
+```{r total individuals caught by unit of effort}
+total_by_year_corrected <- cleanData %>% 
+  group_by(year) %>% 
+  summarise(effort = n_distinct(eventID),
+            n = sum(individualCount, na.rm = TRUE)/effort) 
+
+
+plot_cpue <- total_by_year_corrected %>% 
+  ggplot(aes(x = year, y = n)) +
+  geom_bar(stat = "identity") + 
+  geom_line(aes(x = year, y = effort),
+            stat = "identity") +
+  scale_y_continuous(name = "Total catch per unit of effort",
+                     sec.axis = sec_axis(trans=~., name="effort"))
+```
+
+```{r map management}
+total_by_year_corrected_gem <- cleanData %>% 
+  group_by(year, NISCODE, NAAM) %>% 
+  summarise(effort = n_distinct(eventID),
+            n = sum(individualCount, na.rm = TRUE)/effort) %>% 
+  filter(year == 2010) %>% 
+  left_join(gemeentes) %>% 
+  ungroup() %>% 
+  st_as_sf()
+
+library(leaflet)
+
+pal <- colorBin(palette = "RdYlGn",
+                domain = total_by_year_corrected_gem$n,
+                bins = 5,
+                pretty = TRUE,
+                na.color = "#808080",
+                reverse = TRUE)
+
+leaflet() %>% 
+  addTiles() %>% 
+  addPolylines(data = gemeentes,
+               weight = 1,
+               color = "black") %>% 
+  addPolylines(data = provincies, 
+               weight = 2,
+               color = "black") %>% 
+  addPolygons(data = total_by_year_corrected_gem,
+              color = ~pal(n))
+```
