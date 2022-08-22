@@ -2,7 +2,9 @@
 title: "Management_graphs"
 author: "Sander Devisscher"
 date: '2022-08-17'
-output: html_document
+output:
+  word_document: default
+  html_document: default
 ---
 
 ```{r setup, include=FALSE}
@@ -12,7 +14,7 @@ library(sf)
 library(tidyverse)
 ```
 
-```{r get credentials}
+```{r get credentials, include=FALSE}
 gbif_email <- Sys.getenv("email")
 gbif_pwd <- Sys.getenv("gbif_pwd")
 gbif_user <- Sys.getenv("gbif_user")
@@ -20,7 +22,7 @@ gbif_user <- Sys.getenv("gbif_user")
 
 Currently there is only 1 dataset but in the future there will be 2
 
-```{r get data from gbif}
+```{r get data from gbif, include=FALSE}
 datasetkeys <- c("ea95fd9b-58dc-4e48-b51f-9380e9804607")
 taxonkey <- c(2427091)
 
@@ -39,7 +41,7 @@ gbif_download <- occ_download_get(gbif_downloadKey,
 cleanData <- occ_download_import(x = gbif_download) 
 ```
 
-```{r get verbatim data}
+```{r get verbatim data, include=FALSE}
 lifeStage_output <- data.frame()
 locality_output <- data.frame()
 
@@ -117,7 +119,7 @@ cleanData <- cleanData %>%
   left_join(locality_output)
 ```
 
-```{r data cleaning}
+```{r data cleaning, include=FALSE}
 cleanData <- cleanData %>% 
   filter(samplingProtocol != "field observation",
          !grepl("13353", verbatimLocality),
@@ -137,7 +139,7 @@ cleanData <- cleanData %>%
 table(cleanData$verbatimLocality, cleanData$year)
 ```
 
-```{r add municipality & province}
+```{r add municipality & province, include=FALSE}
 locations <- cleanData %>% 
   group_by(locationID) %>% 
   summarise(decimalLatitude = first(decimalLatitude),
@@ -174,7 +176,9 @@ cleanData <- cleanData %>%
   left_join(locations)
 ```
 
-```{r total individual caught}
+# GRAPH: Total number of bullfrogs caught
+
+```{r total individual caught, include=FALSE}
 total_by_year <- cleanData %>% 
   group_by(year) %>% 
   summarise(n = sum(individualCount, na.rm = TRUE)) %>% 
@@ -182,12 +186,47 @@ total_by_year <- cleanData %>%
   geom_bar(stat = "identity")
 ```
 
-```{r total individuals caught by unit of effort}
+```{r echo=FALSE}
+plot(total_by_year)
+```
+
+# GRAPH: Absolute number of bullfrogs caught by lifestage
+```{r total individuals caught by lifestage, include=FALSE}
+total_by_year_by_lifestage <- cleanData %>% 
+  group_by(year, lifeStage) %>% 
+  summarise(n = sum(individualCount, na.rm = TRUE)) %>% 
+  filter(!is.na(lifeStage)) %>% 
+  ggplot(aes(x = year, y = n, fill = lifeStage)) +
+  geom_bar(stat = "identity",
+           position = "stack")
+```
+
+```{r echo=FALSE}
+total_by_year_by_lifestage
+```
+
+# GRAPH: Cumulative number of bullfrogs caught
+```{r include=FALSE}
+cum_by_year <- cleanData %>% 
+  arrange(year) %>% 
+  mutate(cum = cumsum(individualCount)) %>% 
+  group_by(year) %>% 
+  summarise(n = max(cum)) %>% 
+  ggplot(aes(x = year, y = n)) +
+  geom_bar(stat = "identity")
+```
+
+```{r echo=FALSE}
+plot(cum_by_year)
+```
+
+
+# GRAPH: Catch per unit of effort
+```{r total individuals caught by unit of effort, include=FALSE}
 total_by_year_corrected <- cleanData %>% 
   group_by(year) %>% 
   summarise(effort = n_distinct(eventID),
             n = sum(individualCount, na.rm = TRUE)/effort) 
-
 
 plot_cpue <- total_by_year_corrected %>% 
   ggplot(aes(x = year, y = n)) +
@@ -198,17 +237,15 @@ plot_cpue <- total_by_year_corrected %>%
                      sec.axis = sec_axis(trans=~., name="effort"))
 ```
 
-```{r total individuals caught by lifestage}
-total_by_year_by_lifestage <- cleanData %>% 
-  group_by(year, lifeStage) %>% 
-  summarise(n = sum(individualCount, na.rm = TRUE)) %>% 
-  filter(!is.na(lifeStage)) %>% 
-  ggplot(aes(x = year, y = n, fill = lifeStage)) +
-  geom_bar(stat = "identity",
-           position = "stack")
+```{r echo=FALSE}
+plot(plot_cpue)
 ```
 
-```{r capture per unit of effort by lifestage}
+
+
+# GRAPH: Catch per unit of effort per lifstage
+
+```{r capture per unit of effort by lifestage, include=FALSE}
 total_by_year_corrected_lifestage <- cleanData %>% 
   group_by(year) %>% 
   mutate(effort = n_distinct(eventID)) %>% 
@@ -220,7 +257,6 @@ total_by_year_corrected_lifestage <- cleanData %>%
           lifeStage = "juvenile",
           effort = 213)
 
-
 plot_cpue_lifestage <- total_by_year_corrected_lifestage %>% 
   ggplot(aes(x = year, y = n, fill = lifeStage)) +
   geom_bar(stat = "identity") + 
@@ -230,7 +266,13 @@ plot_cpue_lifestage <- total_by_year_corrected_lifestage %>%
                      sec.axis = sec_axis(trans=~., name="effort"))
 ```
 
-```{r map management}
+```{r echo=FALSE}
+plot(plot_cpue_lifestage)
+```
+
+# Management map
+
+```{r map management, echo=FALSE}
 jaar <- 2018
 
 total_by_year_corrected_gem <- cleanData %>% 
@@ -260,7 +302,16 @@ pal <- colorBin(palette = "RdYlGn",
                 pretty = TRUE,
                 na.color = "#808080",
                 reverse = TRUE)
+```
 
+# MAP: Bullfrog management in `r jaar`
+
+Suggested filters:
+ - year
+ - region-scale (province/commune)
+ - unit (absolute/cpue)
+
+```{r echo=FALSE}
 leaflet() %>%
   addPolylines(data = gemeentes,
                weight = 1,
@@ -278,3 +329,4 @@ leaflet() %>%
             title = "Catch per unit of effort",
             na.label = 0)
 ```
+
