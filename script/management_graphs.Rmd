@@ -231,34 +231,50 @@ plot_cpue_lifestage <- total_by_year_corrected_lifestage %>%
 ```
 
 ```{r map management}
+jaar <- 2018
+
 total_by_year_corrected_gem <- cleanData %>% 
   group_by(year, NISCODE, NAAM) %>% 
   summarise(effort = n_distinct(eventID),
             n = sum(individualCount, na.rm = TRUE)/effort) %>% 
-  filter(year == 2018) %>% 
+  filter(year == jaar) %>% 
   left_join(gemeentes) %>% 
   ungroup() %>% 
+  st_as_sf()
+
+grid <- read_sf("../alien-species-portal/alienSpecies/inst/extdata/grid/be_1km.shp") %>% 
+  st_as_sf() %>% 
+  st_transform(4326)
+
+spread <- read_sf("../alien-species-portal/alienSpecies/inst/extdata/be_alientaxa_cube.csv") %>% 
+  filter(taxonKey == "2427091") %>% 
+  filter(year == as.character(jaar)) %>% 
+  left_join(grid, by = c("eea_cell_code" = "CELLCODE")) %>% 
   st_as_sf()
 
 library(leaflet)
 
 pal <- colorBin(palette = "RdYlGn",
                 domain = total_by_year_corrected_gem$n,
-                bins = 5,
+                bins = c(0, 1, 100, 200, 300, 400, 500),
                 pretty = TRUE,
                 na.color = "#808080",
                 reverse = TRUE)
 
-leaflet() %>% 
-  addTiles() %>% 
+leaflet() %>%
   addPolylines(data = gemeentes,
                weight = 1,
                color = "black") %>% 
   addPolylines(data = provincies, 
                weight = 2,
                color = "black") %>% 
+   addPolylines(data = spread, 
+               color = "red",
+               weight = 1) %>% 
   addPolygons(data = total_by_year_corrected_gem,
               color = ~pal(n)) %>% 
-  addLegend(pal = ~pal(n),
-            values = ~total_by_year_corrected_gem$n)
+  addLegend(pal = pal,
+            values = total_by_year_corrected_gem$n,
+            title = "Catch per unit of effort",
+            na.label = 0)
 ```
