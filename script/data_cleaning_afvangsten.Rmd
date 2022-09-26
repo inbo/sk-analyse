@@ -209,7 +209,8 @@ afvangsten_vr_gbif <- afvangsten_per_fuik %>%
   group_by(occurrenceID) %>% 
   mutate(occurrenceID = UUIDgenerate()) %>% 
   mutate(scientificname = "Lithobates catesbeianus",
-         taxonkey = 2427091)
+         taxonkey = 2427091) %>% 
+  filter(!is.na(individualCount))
 
 events <- afvangsten_vr_gbif %>% 
   ungroup() %>% 
@@ -234,7 +235,6 @@ data_bijvangsten <- data %>%
          Jaar > 2018) %>% 
   select(-contains("Vijver"), 
          -contains("fuiken"),
-         -contains("Opmerkingen"),
          -`E-mailadres`, 
          -`Aantal werknemers`,
          -Startuur,
@@ -304,26 +304,55 @@ data_bijvangsten <- data %>%
   ungroup() %>% 
   rowid_to_column(var = "occurrenceID") %>% 
   group_by(occurrenceID) %>% 
-  mutate(occurrenceID = UUIDgenerate())
+  mutate(occurrenceID = UUIDgenerate(),
+         lifestage = NA_character_,
+         individualCount = NA_integer_) %>% 
+  mutate(Datum = as.Date(Datum, format = "%d-%m-%Y"),
+         Tijdstempel = parse_datetime(Tijdstempel, format = "%d-%m-%Y %H:%M:%S"),
+         Hoek = as.character(Hoek),
+         Opmerkingen = as.character(Opmerkingen)) 
+
+species <- unique(data_bijvangsten$scientificname)
+
+temp_taxonkey <- data.frame() %>% 
+  mutate(species = NA_character_,
+         taxonkey = NA_integer_)
+
+for(s in species){
+  s2 <- gsub(pattern = "Distycus spec.",
+             replacement = "Dytiscus",
+             s)
+  
+  temp_lookup <- name_backbone(name = s2,
+                               rank = "SPECIES")
+  
+  if("speciesKey" %in% names(temp_lookup)){
+    temp_taxonkey <- temp_taxonkey %>% 
+      add_row(species = s,
+              taxonkey = temp_lookup$speciesKey)
+  }else{
+    temp_taxonkey <- temp_taxonkey %>% 
+      add_row(species = s,
+              taxonkey = temp_lookup$genusKey)
+  }
+  
+}
+
+data_bijvangsten <- data_bijvangsten %>% 
+  left_join(temp_taxonkey,
+            by = c("scientificname" = "species"))
 
 x <- names(afvangsten_vr_gbif)
 y <- names(data_bijvangsten)
 
-x_not_y <- !x %in% y
-
-species <- unique(data_bijvangsten$scientificname)
-
-
-for(s in species){
-  temp_lookup <- name_lookup(s,
-                    rank = "species",
-                    status = "ACCEPTED")
-  
-  temp_taxonkey <- temp_lookup$data
-}
-
-
+x_not_y <- setdiff(x, y)
+y_not_x <- setdiff(y, x)
 
 #max(str_count(data_bijvangsten$species, ";"), na.rm = TRUE)
+```
+
+```{r datacleaning - recombine dfs vr gbif}
+write_csv(afvangsten_vr_gbif, "./output/gbif_stierkikker_vangsten.csv")
+write_csv(data_bijvangsten, "./output/gbif_stierkikker_bijvangsten.csv")
 ```
 
