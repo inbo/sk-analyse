@@ -12,6 +12,7 @@ Je maakt dit type bestand door eerst in kladblok (of een andere tekstverwerker z
 ```{r libraries}
 library(googlesheets4)
 library(uuid)
+library(rgbif)
 library(tidyverse)
 library(tidylog)
 ```
@@ -37,6 +38,10 @@ vijvers <- read_sheet("1_cBgfSjnxakLAQ9uGunDt_-Mk4L0uDx2-qv6cKCzkSk",
            ", ") %>% 
   mutate(lat = as.numeric(lat),
          long = as.numeric(long))
+
+bijvangst <- read_sheet("1myx434jMfys4rxGH-7oRqgkl4Hzl98CgKK7nsg7oia0",
+                        sheet = "Blad1",
+                        col_types = "c")
 ```
 
 ## Vijvers
@@ -57,7 +62,7 @@ data <- rawdata %>%
          `Fuik 1 - AV` = case_when(Tijdstempel == "23-5-2018 15:52:13" ~ "1",
                                    TRUE ~ `Fuik 1 - AV`),
          `Fuik 1 - Opmerkingen` = case_when(Tijdstempel == "23-5-2018 15:52:13" ~ "AV (poten niet meegeteld) 16cm",
-                                   TRUE ~ `Fuik 1 - Opmerkingen`)) %>% 
+                                            TRUE ~ `Fuik 1 - Opmerkingen`)) %>% 
   left_join(vijvers) %>% 
   rename(locationID = UUID)
 
@@ -75,8 +80,8 @@ De correctie factor staat nu op in alle gevallen op 1.
 dmv case_when kan je conditioneel deze factor herberekenen.
 voorbeeld:
 mutate(correctie_factor = case_when(fuiktype == "enkele fuik" ~ 0.5,
-                                    fuiklengte == "13m" ~ 0.75,
-                                    TRUE ~ 1))
+fuiklengte == "13m" ~ 0.75,
+TRUE ~ 1))
 
 ```{r datacleaning - general}
 table(data$`Wat wil je melden`)
@@ -155,25 +160,6 @@ table(afvangsten_per_fuik$fuiktype, useNA = "ifany") #NA's zijn meestal dubbele 
 write_csv(afvangsten_per_fuik, "./interim/afvangsten_per_fuik.csv")
 ```
 
-```{r datacleaning - afvangsten voor gbif}
-afvangsten_vr_gbif <- afvangsten_per_fuik %>%
-  pivot_longer(cols = c("L00",
-                        "L0",
-                        "L1",
-                        "L2",
-                        "M1",
-                        "M2",
-                        "AM",
-                        "AV"),
-               names_to = "lifestage",
-               values_to = "individualCount") %>% 
-  ungroup() %>% 
-  rowid_to_column(var = "occurrenceID") %>% 
-  group_by(occurrenceID) %>% 
-  mutate(occurrenceID = UUIDgenerate())
-
-n_distinct(afvangsten_vr_gbif$occurrenceID) == nrow(afvangsten_vr_gbif)
-```
 
 ```{r datacleaning - afvangsten per vangstdag}
 afvangsten_per_vangst <- afvangsten_per_fuik %>% 
@@ -196,5 +182,148 @@ n_distinct(afvangsten_per_fuik$Datum, afvangsten_per_fuik$Locatie) == nrow(afvan
 
 # Export
 write_csv(afvangsten_per_vangst, "./interim/afvangsten_per_vangst.csv")
+```
+
+```{r datacleaning - afvangsten voor gbif}
+afvangsten_vr_gbif <- afvangsten_per_fuik %>%
+  filter(Jaar > 2018) %>% 
+  select(-no_fuiken,
+         -larven_fuik,
+         -totaal_fuik,
+         -correctie_factor,
+         -larven_corrected,
+         -totaal_fuik_corrected,
+         -`Invuller 2`) %>% 
+  pivot_longer(cols = c("L00",
+                        "L0",
+                        "L1",
+                        "L2",
+                        "M1",
+                        "M2",
+                        "AM",
+                        "AV"),
+               names_to = "lifestage",
+               values_to = "individualCount") %>% 
+  ungroup() %>% 
+  rowid_to_column(var = "occurrenceID") %>% 
+  group_by(occurrenceID) %>% 
+  mutate(occurrenceID = UUIDgenerate()) %>% 
+  mutate(scientificname = "Lithobates catesbeianus",
+         taxonkey = 2427091)
+
+events <- afvangsten_vr_gbif %>% 
+  ungroup() %>% 
+  distinct(Datum,
+           Jaar,
+           Locatie,
+           actie,
+           lat,
+           long,
+           locationID,
+           eventID) 
+
+
+n_distinct(afvangsten_vr_gbif$occurrenceID) == nrow(afvangsten_vr_gbif)
+n_distinct(afvangsten_vr_gbif$eventID) == nrow(events)
+```
+
+```{r datacleaning - bijvangsten vr gbif}
+data_bijvangsten <- data %>% 
+  filter(!is.na(locationID),
+         grepl("Afvangst", `Wat wil je melden`),
+         Jaar > 2018) %>% 
+  select(-contains("Vijver"), 
+         -contains("fuiken"),
+         -contains("Opmerkingen"),
+         -`E-mailadres`, 
+         -`Aantal werknemers`,
+         -Startuur,
+         -Einduur,
+         -contains("L00"),
+         -contains("L0"),
+         -contains("L1"),
+         -contains("L2"),
+         -contains("M1"),
+         -contains("M2"),
+         -contains("AV"),
+         -contains("AM"),
+         -Invuller,
+         -eDNA_Status,
+         -Latest_Update,
+         -Laatste_vangst,
+         -Larven,
+         -`Post-Metamorfen`,
+         -`Aantal fuiken geplaatst`,
+         -`Start vangstperiode`,
+         -`Eind vangstperiode`,
+         -Gebied, 
+         -Nummer) %>% 
+  mutate(eventID = paste(Datum, Locatie, sep = "_")) %>% 
+  pivot_longer(cols = contains("Fuik", ignore.case = TRUE),
+               values_to = "value") %>% 
+  separate(name, c("fuikNr", "type"), " - ",
+           convert = TRUE) %>% 
+  pivot_wider(names_from = type, values_from = value) %>% 
+  rename(species = 'Bijvangst [Soort]') %>% 
+  mutate(species = gsub(pattern = "\\[|\\]",
+                        replacement = "",
+                        species)) %>% 
+  separate(col = "species",
+           into = c("species_0",
+                    "species_1",
+                    "species_2",
+                    "species_3",
+                    "species_4",
+                    "species_5",
+                    "species_6",
+                    "species_7",
+                    "species_8",
+                    "species_9",
+                    "species_10"),
+           sep = ";") %>% 
+  pivot_longer(cols = contains("species"),
+               names_to = "species_nr",
+               values_to = "species") %>% 
+  select(-species_nr) %>% 
+  filter(!is.na(species),
+         species != "") %>% 
+  left_join(bijvangst <- bijvangst %>% 
+              select(Soort_Nieuw,
+                     scientificname = Species),
+            by = c("species" = "Soort_Nieuw")) %>% 
+  select(-species) %>% 
+  separate(`Wat wil je melden`, c("actie", 
+                                  "fuiktype_1", 
+                                  "fuiktype_2", 
+                                  "fuiklengte"),
+           convert = TRUE) %>% 
+  mutate(fuiktype = paste(fuiktype_1,
+                          fuiktype_2)) %>% 
+  select(-fuiktype_1,
+         -fuiktype_2) %>% 
+  ungroup() %>% 
+  rowid_to_column(var = "occurrenceID") %>% 
+  group_by(occurrenceID) %>% 
+  mutate(occurrenceID = UUIDgenerate())
+
+x <- names(afvangsten_vr_gbif)
+y <- names(data_bijvangsten)
+
+x_not_y <- !x %in% y
+
+species <- unique(data_bijvangsten$scientificname)
+
+
+for(s in species){
+  temp_lookup <- name_lookup(s,
+                    rank = "species",
+                    status = "ACCEPTED")
+  
+  temp_taxonkey <- temp_lookup$data
+}
+
+
+
+#max(str_count(data_bijvangsten$species, ";"), na.rm = TRUE)
 ```
 
