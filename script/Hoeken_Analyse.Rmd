@@ -14,18 +14,14 @@ knitr::opts_chunk$set(echo = TRUE)
 
 ```{r libraries, include=FALSE}
 library(multcompView)
-library(dplyr)
 library(scales)
 library(magrittr)
 library(tidyverse)
 ```
 
 ```{r, include=FALSE}
-hoeken_data_compiled <- read_delim("./Intermediate/hoeken_data_compiled.csv",
-    ";", escape_double = FALSE, trim_ws = TRUE)
-
-hoeken_data_compiled <- hoeken_data_compiled %>%
-  filter(!is.na(larven))
+hoeken_data_compiled <- read_delim("./interim/afvangsten_per_fuik.csv",
+    ",", escape_double = FALSE, trim_ws = TRUE)
 ```
 
 # 1. Analyse
