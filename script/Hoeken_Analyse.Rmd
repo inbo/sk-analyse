@@ -1,0 +1,349 @@
+---
+title: "Hoeken_Analyse"
+author: "Sander Devisscher"
+date: "`r format(Sys.time(), '%d %B, %Y')`"
+output:
+  word_document: default
+  pdf_document: default
+  html_document: default
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+```{r libraries, include=FALSE}
+library(multcompView)
+library(dplyr)
+library(scales)
+library(magrittr)
+library(tidyverse)
+```
+
+```{r, include=FALSE}
+hoeken_data_compiled <- read_delim("./Intermediate/hoeken_data_compiled.csv",
+    ";", escape_double = FALSE, trim_ws = TRUE)
+
+hoeken_data_compiled <- hoeken_data_compiled %>%
+  filter(!is.na(larven))
+```
+
+# 1. Analyse
+## 1.1. Hypotheses
+
+  1. Het verhogen van het net vergroot de vangkans van Post-Metamorfen
+  2. Het plaatsen van een fuik in een hoek vergroot de vangkans van Post-Metamorfen
+  3. Het plaatsen van een fuik parallel aan de oever vergroot de vangkans van larven
+
+## 1.2. Beschrijvende statistiek
+
+### 1.2.1. Algemene gegevens
+
+#### 1.2.1.1. Histogram
+```{r Histogram, echo=FALSE}
+p <- ggplot(hoeken_data_compiled, aes(x = totaal))+
+  geom_histogram(bins = max(hoeken_data_compiled$totaal)/10)+
+  xlab("gevangen stierkikkers")+
+  ylab("# fuiken")
+
+print(p)
+```
+
+#### 1.2.1.2. Tabel
+```{r tabel per stadium, include=FALSE}
+n <- nrow(hoeken_data_compiled)
+n_adult <- sum(!is.na(hoeken_data_compiled$adult) & hoeken_data_compiled$adult != 0)
+n_larven <- sum(!is.na(hoeken_data_compiled$larven) & hoeken_data_compiled$larven != 0)
+n_metamorfen <- sum(!is.na(hoeken_data_compiled$metamorf) & hoeken_data_compiled$metamorf != 0)
+
+perc_adult <- percent(n_adult/n, accuracy = 0.01)
+perc_larven <- percent(n_larven/n, accuracy = 0.01)
+perc_metamorf <- percent(n_metamorfen/n, accuracy = 0.01)
+
+max_adult <- max(hoeken_data_compiled$adult)
+max_larven <- max(hoeken_data_compiled$larven)
+max_metamorfen <- max(hoeken_data_compiled$metamorf)
+
+mean_adult <- round(mean(hoeken_data_compiled$adult),2)
+mean_larven <- round(mean(hoeken_data_compiled$larven),2)
+mean_metamorfen <- round(mean(hoeken_data_compiled$metamorf),2)
+
+med_adult <- round(median(hoeken_data_compiled$adult[hoeken_data_compiled$adult!=0]),2)
+med_larven <- round(median(hoeken_data_compiled$larven[hoeken_data_compiled$larven!=0]),2)
+med_metamorfen <- round(median(hoeken_data_compiled$metamorf[hoeken_data_compiled$metamorf!=0]),2)
+```
+
+Fuiken met hoek en/of net verhoging info: `r n`
+
+|           |Succesvolle vangsten^1^|% fuiken |Grootste vangst   |Gemiddelde vangst |Mediane vangst |
+|-----------|:-------------------:|:----------------:|:----------------:|:-----------------:|:-----------------:|
+|   larven  |  `r n_larven`       |`r perc_larven`   | `r max_larven`    |`r mean_larven`|`r med_larven`|
+| metamorfen| `r n_metamorfen`    |`r perc_metamorf` |`r max_metamorfen`|`r mean_metamorfen`|`r med_metamorfen`|
+|    adult  |   `r n_adult`       |`r perc_adult`    |`r max_adult`     |`r mean_adult`|`r med_adult`|
+
+^1^ _fuik met minstens 1 gevangen exemplaar._
+
+### 1.2.2. Net verhoogd of niet
+
+#### 1.2.2.1. Histogram
+```{r Histogram_NV, echo=FALSE}
+p <- ggplot(hoeken_data_compiled, aes(x = totaal, fill = net_verhoogd))+
+  geom_histogram(bins = max(hoeken_data_compiled$totaal)/10)+
+  xlab("gevangen stierkikkers")+
+  ylab("# fuiken")
+
+print(p)
+```
+
+#### 1.2.2.2. Tabel
+```{r data subsets,include=FALSE}
+#Larven
+hoeken_data_larven <- hoeken_data_compiled %>%
+  filter(larven != 0)
+#Metamorfen
+hoeken_data_metamorf <- hoeken_data_compiled %>%
+  filter(metamorf != 0)
+hoeken_data_adult <- hoeken_data_compiled %>%
+  filter(adult != 0)
+table(hoeken_data_larven$net_verhoogd, useNA = "ifany")
+```
+
+```{r tabel per net verhoogd, include=FALSE}
+stadia <- c("larven", "metamorf", "adult")
+
+n_net <- sum(!is.na(hoeken_data_compiled$net_verhoogd))
+n_nv <- sum(hoeken_data_compiled$net_verhoogd == TRUE, na.rm = TRUE)
+n_nnv <- sum(hoeken_data_compiled$net_verhoogd == FALSE, na.rm = TRUE)
+
+for(s in stadia){
+  fn <- paste0("hoeken_data_", s)
+  fn2 <- paste0("nv_", s)
+  fn3 <- paste0("nnv_", s)
+  data <- get(fn)
+  nv_data <- data %>%
+    rename(n = s) %>%
+    filter(net_verhoogd==TRUE) %>%
+    summarise(max = max(n, na.rm = TRUE),
+              mean = mean(n, na.rm = TRUE),
+              med = median(n, na.rm = TRUE),
+              n = n(),
+              perc = percent(n/n_nv, accuracy = 0.01))
+  nnv_data <- data %>%
+    rename(n = s) %>%
+    filter(net_verhoogd==FALSE) %>%
+    summarise(max = max(n, na.rm = TRUE),
+              mean = mean(n, na.rm = TRUE),
+              med = median(n, na.rm = TRUE),
+              n = n(),
+              perc = percent(n/n_nnv, accuracy = 0.01))
+  assign(fn2, nv_data)
+  assign(fn3, nnv_data)
+}
+```
+
+
+
+Fuiken met net verhoging info: `r n_net` (`r percent(n_net/n, accuracy = 0.01)` van fuiken met hoek en/of net verhoging info).  
+Het net werd verhoogd bij `r n_nv` (`r percent(n_nv/n_net, accuracy = 0.01)`) van de fuiken met net verhoging info  
+en _niet_ verhoogd bij `r n_nnv` (`r percent(n_nnv/n_net, accuracy = 0.01)`) van de fuiken met net verhoging info.
+
+##### 1.2.2.2.A. Larven
+
+|                 |Succesvolle vangsten^1^| % fuiken² |Grootste vangst   |Gemiddelde vangst  |Mediane vangst |
+|-----------------|:-------------------:|:----------------:|:-----------------:|:-----------------:|:-----------------:|
+|Net verhoogd     | `r nv_larven$n`     |`r nv_larven$perc`|`r nv_larven$max` |`r nv_larven$mean` |`r nv_larven$med`|
+|Net _niet_ verhoogd| `r nnv_larven$n`  |`r nnv_larven$perc`|`r nnv_larven$max`|`r nnv_larven$mean`|`r nnv_larven$med`|
+
+##### 1.2.2.2.B. Metamorfen
+
+|                 |Succesvolle vangsten^1^|% fuiken² |Grootste vangst   |Gemiddelde vangst  |Mediane vangst |
+|-----------------|:-------------------:|:----------------:|:-----------------:|:-----------------:|:-----------------:|
+|Net verhoogd     | `r nv_metamorf$n`     |`r nv_metamorf$perc`|`r nv_metamorf$max` |`r nv_metamorf$mean`|`r nv_metamorf$med`|
+|Net _niet_ verhoogd| `r nnv_metamorf$n`  |`r nnv_metamorf$perc`|`r nnv_metamorf$max`|`r nnv_metamorf$mean`|`r nnv_metamorf$med`|
+
+##### 1.2.2.2.C. Adulten
+
+|                 |Succesvolle vangsten^1^|% fuiken² |Grootste vangst   |Gemiddelde vangst  |Mediane vangst |
+|-----------------|:-------------------:|:----------------:|:-----------------:|:-----------------:|:-----------------:|
+|Net verhoogd     | `r nv_adult$n`     |`r nv_adult$perc`|`r nv_adult$max` |`r nv_adult$mean`|`r nv_adult$med`|
+|Net _niet_ verhoogd| `r nnv_adult$n`  |`r nnv_adult$perc`|`r nnv_adult$max`|`r nnv_adult$mean`|`r nnv_adult$med`|
+
+^1^ _fuik met minstens 1 gevangen exemplaar._  
+² _aandeel succesvolle fuiken ten opzichte van het aantal fuiken dat volgens de beschreven manier geplaatst werd._
+
+
+
+### 1.2.3. Hoeken
+
+#### 1.2.3.1. Histogram
+```{r Histogram_Hoek, echo=FALSE}
+p <- ggplot(hoeken_data_compiled, aes(x = totaal, fill = hoek))+
+  geom_histogram(bins = max(hoeken_data_compiled$totaal)/10)+
+  xlab("gevangen stierkikkers")+
+  ylab("# fuiken")
+
+print(p)
+```
+
+#### 1.2.3.2. Tabel
+```{r tabel per hoek, include=FALSE}
+stadia <- c("larven", "metamorf", "adult")
+
+n_hoek <- sum(!is.na(hoeken_data_compiled$hoek))
+n_par <- sum(hoeken_data_compiled$hoek == "00°", na.rm = TRUE)
+n_mid <- sum(hoeken_data_compiled$hoek == "45°", na.rm = TRUE)
+n_lood <- sum(hoeken_data_compiled$hoek == "90°", na.rm = TRUE)
+
+for(s in stadia){
+  fn <- paste0("hoeken_data_", s)
+  fn2 <- paste0("par_", s)
+  fn3 <- paste0("mid_", s)
+  fn4 <- paste0("lood_", s)
+  data <- get(fn)
+  par_data <- data %>%
+    rename(n = s) %>%
+    filter(hoek=="00°") %>%
+    summarise(max = max(n, na.rm = TRUE),
+              mean = mean(n, na.rm = TRUE),
+              med = median(n, na.rm = TRUE),
+              n = n(),
+              perc = percent(n/n_par, accuracy = 0.01))
+  lood_data <- data %>%
+    rename(n = s) %>%
+    filter(hoek=="90°") %>%
+    summarise(max = max(n, na.rm = TRUE),
+              mean = mean(n, na.rm = TRUE),
+              med = median(n, na.rm = TRUE),
+              n = n(),
+              perc = percent(n/n_lood, accuracy = 0.01))
+  mid_data <- data %>%
+    rename(n = s) %>%
+    filter(hoek=="45°") %>%
+    summarise(max = max(n, na.rm = TRUE),
+              mean = mean(n, na.rm = TRUE),
+              med = median(n, na.rm = TRUE),
+              n = n(),
+              perc = percent(n/n_mid, accuracy = 0.01))
+  assign(fn2, par_data)
+  assign(fn3, mid_data)
+  assign(fn4, lood_data)
+}
+```
+
+Fuiken met hoek info: `r n_hoek` (`r percent(n_hoek/n, accuracy = 0.01)` van fuiken met hoek en/of net verhoging info).  
+`r n_par` (`r percent(n_par/n_hoek, accuracy = 0.01)`) van de fuiken met hoek info werd parallel met de oever geplaatst,  
+`r n_mid` (`r percent(n_mid/n_hoek, accuracy = 0.01)`) van de fuiken werd onder een hoek van 45° geplaatst en  
+`r n_lood` (`r percent(n_lood/n_hoek, accuracy = 0.01)`) van de fuiken werd loodrecht op de oever geplaatst.
+
+#### 1.2.3.2.A. Larven
+
+|                 |Succesvolle vangsten^1^|  % fuiken² |Grootste vangst   |Gemiddelde vangst  |Mediane vangst |
+|-----------------|:-------------------:|:----------------:|:-----------------:|:-----------------:|:-----------------:|
+|00°              |   `r par_larven$n`  |`r par_larven$perc`|`r par_larven$max`    |`r par_larven$mean`|`r par_larven$med`|
+|45°              | `r mid_larven$n`    |`r mid_larven$perc`  |`r mid_larven$max`|`r mid_larven$mean`  |`r mid_larven$med`|
+|90°              | `r lood_larven$n`   |`r lood_larven$perc`   |`r lood_larven$max`|`r lood_larven$mean`|`r lood_larven$med`|
+
+#### 1.2.3.2.B. Metamorfen
+
+|                 |Succesvolle vangsten^1^|  % fuiken² |Grootste vangst   |Gemiddelde vangst  |Mediane vangst |
+|-----------------|:-------------------:|:----------------:|:-----------------:|:-----------------:|:-----------------:|
+|00°              |`r par_metamorf$n`|`r par_metamorf$perc`|`r par_metamorf$max`|`r par_metamorf$mean`|`r par_metamorf$med`|
+|45°              |`r mid_metamorf$n`|`r mid_metamorf$perc`|`r mid_metamorf$max`|`r mid_metamorf$mean`|`r mid_metamorf$med`|
+|90°              |`r lood_metamorf$n`|`r lood_metamorf$perc`|`r lood_metamorf$max`|`r lood_metamorf$mean`|`r lood_metamorf$med`|
+
+#### 1.2.3.2.C. Adulten
+
+|                 |Succesvolle vangsten^1^|  % fuiken² |Grootste vangst   |Gemiddelde vangst  |Mediane vangst |
+|-----------------|:-------------------:|:----------------:|:-----------------:|:-----------------:|:-----------------:|
+|00°              |`r par_adult$n`|`r par_adult$perc`|`r par_adult$max`|`r par_adult$mean`|`r par_adult$med`|
+|45°              |`r mid_adult$n`|`r mid_adult$perc`|`r mid_adult$max`|`r mid_adult$mean`|`r mid_adult$med`|
+|90°              |`r lood_adult$n`|`r lood_adult$perc`|`r lood_adult$max`|`r lood_adult$mean`|`r lood_adult$med`|
+
+^1^ _fuik met minstens 1 gevangen exemplaar._  
+² _aandeel succesvolle fuiken ten opzichte van het aantal fuiken dat volgens de beschreven manier geplaatst werd._
+
+### 1.2.4. Facet Boxplot
+```{r Boxplot, echo=FALSE, fig.width=8}
+hoeken_data_compiled_2 <-hoeken_data_compiled %>%
+  select(-UUID) %>%
+  gather(key = stadium, value = n, -net_verhoogd, -hoek)
+
+p <- ggplot(hoeken_data_compiled_2, aes(x = net_verhoogd, y = n, fill = hoek))+
+  geom_boxplot() +
+  facet_wrap("stadium", scales = "free") +
+  xlab("tussennet verhoogd") +
+  ylab("gevangen stierkikkers")
+
+print(p)
+```
+
+## 1.3. Anova
+### 1.3.1. Resultaten
+
+```{r hoek analyses, echo=FALSE}
+print("net verhogen en hoek hebben een invloed op de vangstkans van post-metamorfen")
+
+model1 <- lm(hoeken_data_compiled$post_metamorf ~ as.factor(hoeken_data_compiled$net_verhoogd) + as.factor(hoeken_data_compiled$hoek))
+anova1 <- aov(model1)
+summary(anova1)
+
+## Turkey post-hoc
+TukeyHSD(anova1)
+
+
+print("net verhogen en hoek hebben een invloed op de vangstkans van adulten")
+
+model2 <- lm(hoeken_data_compiled$adult ~ as.factor(hoeken_data_compiled$net_verhoogd) + as.factor(hoeken_data_compiled$hoek))
+anova2 <- aov(model2)
+summary(anova2)
+
+## Turkey post-hoc
+
+TukeyHSD(anova2)
+
+
+
+print("net verhogen en hoek hebben een invloed op de vangstkans van metamorfen")
+
+model3 <- lm(hoeken_data_compiled$metamorf ~ as.factor(hoeken_data_compiled$net_verhoogd) + as.factor(hoeken_data_compiled$hoek))
+anova3 <- aov(model3)
+summary(anova3)
+
+## Turkey post-hoc
+
+TukeyHSD(anova3)
+
+
+
+print("net verhogen en hoek hebben een invloed op de vangstkans van larven")
+
+model4 <- lm(hoeken_data_compiled$larven ~ as.factor(hoeken_data_compiled$net_verhoogd) + as.factor(hoeken_data_compiled$hoek))
+anova4 <- aov(model4)
+summary(anova4)
+
+## Turkey post-hoc
+
+TukeyHSD(anova4)
+
+#=>
+
+print("net verhogen en hoek hebben een invloed op de algemene vangstkans")
+
+model5 <- lm(hoeken_data_compiled$totaal ~ as.factor(hoeken_data_compiled$net_verhoogd) + as.factor(hoeken_data_compiled$hoek))
+anova5 <- aov(model5)
+summary(anova5)
+
+## Turkey post-hoc
+
+TukeyHSD(anova5)
+
+
+```
+
+### 1.3.2. Bespreking van de resultaten Anova
+
+Voor **post-metamorfen** (metamorfen en adulten) detecteren we geen significante impact van de hoek en de net-verhoging. Als we de post-metamorfen opsplitsen blijkt dat er duidelijke verschillen zijn voor adulten en metamorfen.
+Voor **adulten** is er een duidelijke significante voorkeur voor een verhoogd net (p = 0) alsook een fuik in een hoek van 45° (p = 0). Een fuik in een hoek van 90° geeft de slechtste resultaten (45°>00°>90°).
+Voor **metamorfen** detecteren we geen significante impact van de hoek en de net-verhoging.
+Het vangstsucces van de **larven** is voornamelijk beinvloed door de hoek van de fuik (p = 0.005), een voorkeur wordt hierbij gegeven voor een hoek van 45° (p = 0.004). Daarnaast verhoogt ook het verhogen van het net het vangstsucces (p = 0.03) al is dit niet zo uitgesproken als bij de adulten.
+De **algemene conclusie** is dat het plaatsen van fuiken, ongeacht het doel-stadium, best gebeurd in een hoek van 45° met een verhoogd net. Als alternatief kunnen de fuiken parallel geplaatst worden. Het plaatsen van fuiken loodrecht op de oever heeft potentieel een negatief effect op het vangstsucces. Dit is het meest uitgesproken bij de larven en de adulten. Wel dient er enige voorzichtigheid m.b.t. het lage aantal vangsten met een hoek van 90° (n = `r n_lood`) aan de man gebracht worden.
