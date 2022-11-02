@@ -19,9 +19,21 @@ library(magrittr)
 library(tidyverse)
 ```
 
-```{r, include=FALSE}
+```{r data inlezen, include=FALSE}
 hoeken_data_compiled <- read_delim("./interim/afvangsten_per_fuik.csv",
-    ",", escape_double = FALSE, trim_ws = TRUE)
+    ",", escape_double = FALSE, trim_ws = TRUE) %>% 
+  filter(!is.na(`Net verhoogd?`) | !is.na(Hoek))
+```
+
+```{r data prep, include=FALSE}
+hoeken_data_compiled <- hoeken_data_compiled %>% 
+  group_by(Datum, Locatie, fuikNr) %>% 
+  mutate(adulten_fuik = sum(AM,AV, na.rm = TRUE),
+         metamorfen_fuik = sum(M1,M2, na.rm = TRUE),
+         post_metamorf = sum(adulten_fuik, metamorfen_fuik, na.rm = TRUE)) %>% 
+  mutate(Hoek = case_when(Hoek == "180" ~ "00°",
+                          Hoek == "45" ~ "45°",
+                          TRUE ~ Hoek))
 ```
 
 # 1. Analyse
@@ -37,8 +49,8 @@ hoeken_data_compiled <- read_delim("./interim/afvangsten_per_fuik.csv",
 
 #### 1.2.1.1. Histogram
 ```{r Histogram, echo=FALSE}
-p <- ggplot(hoeken_data_compiled, aes(x = totaal))+
-  geom_histogram(bins = max(hoeken_data_compiled$totaal)/10)+
+p <- ggplot(hoeken_data_compiled, aes(x = totaal_fuik))+
+  geom_histogram(bins = max(hoeken_data_compiled$totaal_fuik)/10)+
   xlab("gevangen stierkikkers")+
   ylab("# fuiken")
 
@@ -48,25 +60,25 @@ print(p)
 #### 1.2.1.2. Tabel
 ```{r tabel per stadium, include=FALSE}
 n <- nrow(hoeken_data_compiled)
-n_adult <- sum(!is.na(hoeken_data_compiled$adult) & hoeken_data_compiled$adult != 0)
-n_larven <- sum(!is.na(hoeken_data_compiled$larven) & hoeken_data_compiled$larven != 0)
-n_metamorfen <- sum(!is.na(hoeken_data_compiled$metamorf) & hoeken_data_compiled$metamorf != 0)
+n_adult <- sum(!is.na(hoeken_data_compiled$adulten_fuik) & hoeken_data_compiled$adulten_fuik != 0)
+n_larven <- sum(!is.na(hoeken_data_compiled$larven_fuik) & hoeken_data_compiled$larven_fuik != 0)
+n_metamorfen <- sum(!is.na(hoeken_data_compiled$metamorfen_fuik) & hoeken_data_compiled$metamorfen_fuik != 0)
 
 perc_adult <- percent(n_adult/n, accuracy = 0.01)
 perc_larven <- percent(n_larven/n, accuracy = 0.01)
 perc_metamorf <- percent(n_metamorfen/n, accuracy = 0.01)
 
-max_adult <- max(hoeken_data_compiled$adult)
-max_larven <- max(hoeken_data_compiled$larven)
-max_metamorfen <- max(hoeken_data_compiled$metamorf)
+max_adult <- max(hoeken_data_compiled$adulten_fuik)
+max_larven <- max(hoeken_data_compiled$larven_fuik)
+max_metamorfen <- max(hoeken_data_compiled$metamorfen_fuik)
 
-mean_adult <- round(mean(hoeken_data_compiled$adult),2)
-mean_larven <- round(mean(hoeken_data_compiled$larven),2)
-mean_metamorfen <- round(mean(hoeken_data_compiled$metamorf),2)
+mean_adult <- round(mean(hoeken_data_compiled$adulten_fuik),2)
+mean_larven <- round(mean(hoeken_data_compiled$larven_fuik),2)
+mean_metamorfen <- round(mean(hoeken_data_compiled$metamorfen_fuik),2)
 
-med_adult <- round(median(hoeken_data_compiled$adult[hoeken_data_compiled$adult!=0]),2)
-med_larven <- round(median(hoeken_data_compiled$larven[hoeken_data_compiled$larven!=0]),2)
-med_metamorfen <- round(median(hoeken_data_compiled$metamorf[hoeken_data_compiled$metamorf!=0]),2)
+med_adult <- round(median(hoeken_data_compiled$adulten_fuik[hoeken_data_compiled$adulten_fuik!=0]),2)
+med_larven <- round(median(hoeken_data_compiled$larven_fuik[hoeken_data_compiled$larven_fuik!=0]),2)
+med_metamorfen <- round(median(hoeken_data_compiled$metamorfen_fuik[hoeken_data_compiled$metamorfen_fuik!=0]),2)
 ```
 
 Fuiken met hoek en/of net verhoging info: `r n`
@@ -83,8 +95,8 @@ Fuiken met hoek en/of net verhoging info: `r n`
 
 #### 1.2.2.1. Histogram
 ```{r Histogram_NV, echo=FALSE}
-p <- ggplot(hoeken_data_compiled, aes(x = totaal, fill = net_verhoogd))+
-  geom_histogram(bins = max(hoeken_data_compiled$totaal)/10)+
+p <- ggplot(hoeken_data_compiled, aes(x = totaal_fuik, fill = `Net verhoogd?`))+
+  geom_histogram(bins = max(hoeken_data_compiled$totaal_fuik)/10)+
   xlab("gevangen stierkikkers")+
   ylab("# fuiken")
 
@@ -95,30 +107,34 @@ print(p)
 ```{r data subsets,include=FALSE}
 #Larven
 hoeken_data_larven <- hoeken_data_compiled %>%
-  filter(larven != 0)
+  filter(larven_fuik != 0)
 #Metamorfen
-hoeken_data_metamorf <- hoeken_data_compiled %>%
-  filter(metamorf != 0)
-hoeken_data_adult <- hoeken_data_compiled %>%
-  filter(adult != 0)
-table(hoeken_data_larven$net_verhoogd, useNA = "ifany")
+hoeken_data_metamorfen <- hoeken_data_compiled %>%
+  filter(metamorfen_fuik != 0)
+hoeken_data_adulten <- hoeken_data_compiled %>%
+  filter(adulten_fuik != 0)
+table(hoeken_data_larven$`Net verhoogd?`, useNA = "ifany")
 ```
 
 ```{r tabel per net verhoogd, include=FALSE}
-stadia <- c("larven", "metamorf", "adult")
+stadia <- c("larven_fuik", "metamorfen_fuik", "adulten_fuik")
 
-n_net <- sum(!is.na(hoeken_data_compiled$net_verhoogd))
-n_nv <- sum(hoeken_data_compiled$net_verhoogd == TRUE, na.rm = TRUE)
-n_nnv <- sum(hoeken_data_compiled$net_verhoogd == FALSE, na.rm = TRUE)
+n_net <- sum(!is.na(hoeken_data_compiled$`Net verhoogd?`))
+n_nv <- sum(hoeken_data_compiled$`Net verhoogd?` == TRUE, na.rm = TRUE)
+n_nnv <- sum(hoeken_data_compiled$`Net verhoogd?` == FALSE, na.rm = TRUE)
 
 for(s in stadia){
-  fn <- paste0("hoeken_data_", s)
-  fn2 <- paste0("nv_", s)
-  fn3 <- paste0("nnv_", s)
+  s2 <- gsub(pattern = "_fuik",
+             replacement = "",
+             s)
+  
+  fn <- paste0("hoeken_data_", s2)
+  fn2 <- paste0("nv_", s2)
+  fn3 <- paste0("nnv_", s2)
   data <- get(fn)
   nv_data <- data %>%
     rename(n = s) %>%
-    filter(net_verhoogd==TRUE) %>%
+    filter(`Net verhoogd?`==TRUE) %>%
     summarise(max = max(n, na.rm = TRUE),
               mean = mean(n, na.rm = TRUE),
               med = median(n, na.rm = TRUE),
@@ -126,7 +142,7 @@ for(s in stadia){
               perc = percent(n/n_nv, accuracy = 0.01))
   nnv_data <- data %>%
     rename(n = s) %>%
-    filter(net_verhoogd==FALSE) %>%
+    filter(`Net verhoogd?`==FALSE) %>%
     summarise(max = max(n, na.rm = TRUE),
               mean = mean(n, na.rm = TRUE),
               med = median(n, na.rm = TRUE),
@@ -154,15 +170,15 @@ en _niet_ verhoogd bij `r n_nnv` (`r percent(n_nnv/n_net, accuracy = 0.01)`) van
 
 |                 |Succesvolle vangsten^1^|% fuiken² |Grootste vangst   |Gemiddelde vangst  |Mediane vangst |
 |-----------------|:-------------------:|:----------------:|:-----------------:|:-----------------:|:-----------------:|
-|Net verhoogd     | `r nv_metamorf$n`     |`r nv_metamorf$perc`|`r nv_metamorf$max` |`r nv_metamorf$mean`|`r nv_metamorf$med`|
-|Net _niet_ verhoogd| `r nnv_metamorf$n`  |`r nnv_metamorf$perc`|`r nnv_metamorf$max`|`r nnv_metamorf$mean`|`r nnv_metamorf$med`|
+|Net verhoogd     | `r nv_metamorfen$n`     |`r nv_metamorfen$perc`|`r nv_metamorfen$max` |`r nv_metamorfen$mean`|`r nv_metamorfen$med`|
+|Net _niet_ verhoogd| `r nnv_metamorfen$n`  |`r nnv_metamorfen$perc`|`r nnv_metamorfen$max`|`r nnv_metamorfen$mean`|`r nnv_metamorfen$med`|
 
 ##### 1.2.2.2.C. Adulten
 
 |                 |Succesvolle vangsten^1^|% fuiken² |Grootste vangst   |Gemiddelde vangst  |Mediane vangst |
 |-----------------|:-------------------:|:----------------:|:-----------------:|:-----------------:|:-----------------:|
-|Net verhoogd     | `r nv_adult$n`     |`r nv_adult$perc`|`r nv_adult$max` |`r nv_adult$mean`|`r nv_adult$med`|
-|Net _niet_ verhoogd| `r nnv_adult$n`  |`r nnv_adult$perc`|`r nnv_adult$max`|`r nnv_adult$mean`|`r nnv_adult$med`|
+|Net verhoogd     | `r nv_adulten$n`     |`r nv_adulten$perc`|`r nv_adulten$max` |`r nv_adulten$mean`|`r nv_adulten$med`|
+|Net _niet_ verhoogd| `r nnv_adulten$n`  |`r nnv_adulten$perc`|`r nnv_adulten$max`|`r nnv_adulten$mean`|`r nnv_adulten$med`|
 
 ^1^ _fuik met minstens 1 gevangen exemplaar._  
 ² _aandeel succesvolle fuiken ten opzichte van het aantal fuiken dat volgens de beschreven manier geplaatst werd._
@@ -173,8 +189,8 @@ en _niet_ verhoogd bij `r n_nnv` (`r percent(n_nnv/n_net, accuracy = 0.01)`) van
 
 #### 1.2.3.1. Histogram
 ```{r Histogram_Hoek, echo=FALSE}
-p <- ggplot(hoeken_data_compiled, aes(x = totaal, fill = hoek))+
-  geom_histogram(bins = max(hoeken_data_compiled$totaal)/10)+
+p <- ggplot(hoeken_data_compiled, aes(x = totaal_fuik, fill = Hoek))+
+  geom_histogram(bins = max(hoeken_data_compiled$totaal_fuik)/10)+
   xlab("gevangen stierkikkers")+
   ylab("# fuiken")
 
@@ -183,22 +199,26 @@ print(p)
 
 #### 1.2.3.2. Tabel
 ```{r tabel per hoek, include=FALSE}
-stadia <- c("larven", "metamorf", "adult")
+stadia <- c("larven_fuik", "metamorfen_fuik", "adulten_fuik")
 
-n_hoek <- sum(!is.na(hoeken_data_compiled$hoek))
-n_par <- sum(hoeken_data_compiled$hoek == "00°", na.rm = TRUE)
-n_mid <- sum(hoeken_data_compiled$hoek == "45°", na.rm = TRUE)
-n_lood <- sum(hoeken_data_compiled$hoek == "90°", na.rm = TRUE)
+n_hoek <- sum(!is.na(hoeken_data_compiled$Hoek))
+n_par <- sum(hoeken_data_compiled$Hoek == "00°", na.rm = TRUE)
+n_mid <- sum(hoeken_data_compiled$Hoek == "45°", na.rm = TRUE)
+n_lood <- sum(hoeken_data_compiled$Hoek == "90°", na.rm = TRUE)
 
 for(s in stadia){
-  fn <- paste0("hoeken_data_", s)
-  fn2 <- paste0("par_", s)
-  fn3 <- paste0("mid_", s)
-  fn4 <- paste0("lood_", s)
+   s2 <- gsub(pattern = "_fuik",
+             replacement = "",
+             s)
+  
+  fn <- paste0("hoeken_data_", s2)
+  fn2 <- paste0("par_", s2)
+  fn3 <- paste0("mid_", s2)
+  fn4 <- paste0("lood_", s2)
   data <- get(fn)
   par_data <- data %>%
     rename(n = s) %>%
-    filter(hoek=="00°") %>%
+    filter(Hoek=="00°") %>%
     summarise(max = max(n, na.rm = TRUE),
               mean = mean(n, na.rm = TRUE),
               med = median(n, na.rm = TRUE),
@@ -206,7 +226,7 @@ for(s in stadia){
               perc = percent(n/n_par, accuracy = 0.01))
   lood_data <- data %>%
     rename(n = s) %>%
-    filter(hoek=="90°") %>%
+    filter(Hoek=="90°") %>%
     summarise(max = max(n, na.rm = TRUE),
               mean = mean(n, na.rm = TRUE),
               med = median(n, na.rm = TRUE),
@@ -214,7 +234,7 @@ for(s in stadia){
               perc = percent(n/n_lood, accuracy = 0.01))
   mid_data <- data %>%
     rename(n = s) %>%
-    filter(hoek=="45°") %>%
+    filter(Hoek=="45°") %>%
     summarise(max = max(n, na.rm = TRUE),
               mean = mean(n, na.rm = TRUE),
               med = median(n, na.rm = TRUE),
@@ -243,28 +263,27 @@ Fuiken met hoek info: `r n_hoek` (`r percent(n_hoek/n, accuracy = 0.01)` van fui
 
 |                 |Succesvolle vangsten^1^|  % fuiken² |Grootste vangst   |Gemiddelde vangst  |Mediane vangst |
 |-----------------|:-------------------:|:----------------:|:-----------------:|:-----------------:|:-----------------:|
-|00°              |`r par_metamorf$n`|`r par_metamorf$perc`|`r par_metamorf$max`|`r par_metamorf$mean`|`r par_metamorf$med`|
-|45°              |`r mid_metamorf$n`|`r mid_metamorf$perc`|`r mid_metamorf$max`|`r mid_metamorf$mean`|`r mid_metamorf$med`|
-|90°              |`r lood_metamorf$n`|`r lood_metamorf$perc`|`r lood_metamorf$max`|`r lood_metamorf$mean`|`r lood_metamorf$med`|
+|00°              |`r par_metamorfen$n`|`r par_metamorfen$perc`|`r par_metamorfen$max`|`r par_metamorfen$mean`|`r par_metamorfen$med`|
+|45°              |`r mid_metamorfen$n`|`r mid_metamorfen$perc`|`r mid_metamorfen$max`|`r mid_metamorfen$mean`|`r mid_metamorfen$med`|
+|90°              |`r lood_metamorfen$n`|`r lood_metamorfen$perc`|`r lood_metamorfen$max`|`r lood_metamorfen$mean`|`r lood_metamorfen$med`|
 
 #### 1.2.3.2.C. Adulten
 
 |                 |Succesvolle vangsten^1^|  % fuiken² |Grootste vangst   |Gemiddelde vangst  |Mediane vangst |
 |-----------------|:-------------------:|:----------------:|:-----------------:|:-----------------:|:-----------------:|
-|00°              |`r par_adult$n`|`r par_adult$perc`|`r par_adult$max`|`r par_adult$mean`|`r par_adult$med`|
-|45°              |`r mid_adult$n`|`r mid_adult$perc`|`r mid_adult$max`|`r mid_adult$mean`|`r mid_adult$med`|
-|90°              |`r lood_adult$n`|`r lood_adult$perc`|`r lood_adult$max`|`r lood_adult$mean`|`r lood_adult$med`|
+|00°              |`r par_adulten$n`|`r par_adulten$perc`|`r par_adulten$max`|`r par_adulten$mean`|`r par_adulten$med`|
+|45°              |`r mid_adulten$n`|`r mid_adulten$perc`|`r mid_adulten$max`|`r mid_adulten$mean`|`r mid_adulten$med`|
+|90°              |`r lood_adulten$n`|`r lood_adulten$perc`|`r lood_adulten$max`|`r lood_adulten$mean`|`r lood_adulten$med`|
 
 ^1^ _fuik met minstens 1 gevangen exemplaar._  
 ² _aandeel succesvolle fuiken ten opzichte van het aantal fuiken dat volgens de beschreven manier geplaatst werd._
 
 ### 1.2.4. Facet Boxplot
 ```{r Boxplot, echo=FALSE, fig.width=8}
-hoeken_data_compiled_2 <-hoeken_data_compiled %>%
-  select(-UUID) %>%
-  gather(key = stadium, value = n, -net_verhoogd, -hoek)
+hoeken_data_compiled_2 <- hoeken_data_compiled %>%
+  pivot_longer(cols = c(L00,L0, L1, L2, M1, M2, AM, AV), names_to = "stadium", values_to = "n")
 
-p <- ggplot(hoeken_data_compiled_2, aes(x = net_verhoogd, y = n, fill = hoek))+
+p <- ggplot(hoeken_data_compiled_2, aes(x = `Net verhoogd?`, y = n, fill = Hoek))+
   geom_boxplot() +
   facet_wrap("stadium", scales = "free") +
   xlab("tussennet verhoogd") +
@@ -279,7 +298,7 @@ print(p)
 ```{r hoek analyses, echo=FALSE}
 print("net verhogen en hoek hebben een invloed op de vangstkans van post-metamorfen")
 
-model1 <- lm(hoeken_data_compiled$post_metamorf ~ as.factor(hoeken_data_compiled$net_verhoogd) + as.factor(hoeken_data_compiled$hoek))
+model1 <- lm(hoeken_data_compiled$post_metamorf ~ as.factor(hoeken_data_compiled$`Net verhoogd?`) + as.factor(hoeken_data_compiled$Hoek))
 anova1 <- aov(model1)
 summary(anova1)
 
@@ -289,7 +308,7 @@ TukeyHSD(anova1)
 
 print("net verhogen en hoek hebben een invloed op de vangstkans van adulten")
 
-model2 <- lm(hoeken_data_compiled$adult ~ as.factor(hoeken_data_compiled$net_verhoogd) + as.factor(hoeken_data_compiled$hoek))
+model2 <- lm(hoeken_data_compiled$adulten_fuik ~ as.factor(hoeken_data_compiled$`Net verhoogd?`) + as.factor(hoeken_data_compiled$Hoek))
 anova2 <- aov(model2)
 summary(anova2)
 
@@ -301,7 +320,7 @@ TukeyHSD(anova2)
 
 print("net verhogen en hoek hebben een invloed op de vangstkans van metamorfen")
 
-model3 <- lm(hoeken_data_compiled$metamorf ~ as.factor(hoeken_data_compiled$net_verhoogd) + as.factor(hoeken_data_compiled$hoek))
+model3 <- lm(hoeken_data_compiled$metamorfen_fuik ~ as.factor(hoeken_data_compiled$`Net verhoogd?`) + as.factor(hoeken_data_compiled$Hoek))
 anova3 <- aov(model3)
 summary(anova3)
 
@@ -313,7 +332,7 @@ TukeyHSD(anova3)
 
 print("net verhogen en hoek hebben een invloed op de vangstkans van larven")
 
-model4 <- lm(hoeken_data_compiled$larven ~ as.factor(hoeken_data_compiled$net_verhoogd) + as.factor(hoeken_data_compiled$hoek))
+model4 <- lm(hoeken_data_compiled$larven_fuik ~ as.factor(hoeken_data_compiled$`Net verhoogd?`) + as.factor(hoeken_data_compiled$Hoek))
 anova4 <- aov(model4)
 summary(anova4)
 
@@ -325,7 +344,7 @@ TukeyHSD(anova4)
 
 print("net verhogen en hoek hebben een invloed op de algemene vangstkans")
 
-model5 <- lm(hoeken_data_compiled$totaal ~ as.factor(hoeken_data_compiled$net_verhoogd) + as.factor(hoeken_data_compiled$hoek))
+model5 <- lm(hoeken_data_compiled$totaal_fuik ~ as.factor(hoeken_data_compiled$`Net verhoogd?`) + as.factor(hoeken_data_compiled$Hoek))
 anova5 <- aov(model5)
 summary(anova5)
 
