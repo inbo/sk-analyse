@@ -3,9 +3,9 @@ title: "Hoeken_Analyse"
 author: "Sander Devisscher"
 date: "`r format(Sys.time(), '%d %B, %Y')`"
 output:
-  html_document: default
-  pdf_document: default
   word_document: default
+  pdf_document: default
+  html_document: default
 ---
 
 ```{r setup, include=FALSE}
@@ -40,7 +40,7 @@ hoeken_data_compiled <- hoeken_data_compiled %>%
 ## 1.1. Hypotheses
 
   1. Het verhogen van het net vergroot de vangkans van Post-Metamorfen
-  2. Het plaatsen van een fuik in een hoek vergroot de vangkans van Post-Metamorfen
+  2. Het plaatsen van een fuik in een hoek (45° of 90°) vergroot de vangkans van Post-Metamorfen
   3. Het plaatsen van een fuik parallel aan de oever vergroot de vangkans van larven
 
 ## 1.2. Beschrijvende statistiek
@@ -292,67 +292,95 @@ print(p)
 ```
 
 ## 1.3. Anova
-### 1.3.1. Resultaten
+### 1.3.1. Net verhogen en hoek hebben een invloed op de vangstkans van **post-metamorfen**
 
-```{r hoek analyses, echo=FALSE}
-print("net verhogen en hoek hebben een invloed op de vangstkans van post-metamorfen")
-
+Model:
+```{r vangstkans post-metamorfen - Model}
 model1 <- lm(hoeken_data_compiled$post_metamorf ~ as.factor(hoeken_data_compiled$`Net verhoogd?`) + as.factor(hoeken_data_compiled$Hoek))
+```
+
+ANOVA:
+```{r vangstkans post-metamorfen - ANOVA, echo=FALSE}
 anova1 <- aov(model1)
 summary(anova1)
+```
 
-## Turkey post-hoc
-TukeyHSD(anova1)
+Tukey post-hoc:
+```{r vangstkans post-metamorfen - Tukey, echo=FALSE}
+Tukey1 <- TukeyHSD(anova1)
+Tukey1
+```
 
-
-print("net verhogen en hoek hebben een invloed op de vangstkans van adulten")
-
+### 1.3.2. Net verhogen en hoek hebben een invloed op de vangstkans van **adulten**
+Model:
+```{r vangstkans adulten - Model}
 model2 <- lm(hoeken_data_compiled$adulten_fuik ~ as.factor(hoeken_data_compiled$`Net verhoogd?`) + as.factor(hoeken_data_compiled$Hoek))
+```
+
+ANOVA:
+```{r vangstkans adulten - ANOVA, echo=FALSE}
 anova2 <- aov(model2)
 summary(anova2)
+```
 
-## Turkey post-hoc
-
+Tukey post-hoc:
+```{r vangstkans adulten - Tukey, echo=FALSE}
 TukeyHSD(anova2)
+```
 
-
-
-print("net verhogen en hoek hebben een invloed op de vangstkans van metamorfen")
-
+### 1.3.3. Net verhogen en hoek hebben een invloed op de vangstkans van **metamorfen**
+Model:
+```{r vangstkans metamorfen - Model}
 model3 <- lm(hoeken_data_compiled$metamorfen_fuik ~ as.factor(hoeken_data_compiled$`Net verhoogd?`) + as.factor(hoeken_data_compiled$Hoek))
+```
+
+ANOVA:
+```{r vangstkans metamorfen - ANOVA, echo=FALSE}
 anova3 <- aov(model3)
 summary(anova3)
+```
 
-## Turkey post-hoc
-
+Tukey post-hoc:
+```{r vangstkans metamorfen - Tukey, echo=FALSE}
 TukeyHSD(anova3)
+```
 
-
-
-print("net verhogen en hoek hebben een invloed op de vangstkans van larven")
-
+### 1.3.4. Net verhogen en hoek hebben een invloed op de vangstkans van **larven**
+Model:
+```{r vangstkans larven - Model}
 model4 <- lm(hoeken_data_compiled$larven_fuik ~ as.factor(hoeken_data_compiled$`Net verhoogd?`) + as.factor(hoeken_data_compiled$Hoek))
+```
+
+ANOVA:
+```{r vangstkans larven - ANOVA, echo=FALSE}
 anova4 <- aov(model4)
 summary(anova4)
+```
 
-## Turkey post-hoc
+Tukey post-hoc:
+```{r vangstkans larven - Tukey, echo=FALSE}
+Tukey2 <- TukeyHSD(anova4)
+Tukey2
+```
 
-TukeyHSD(anova4)
-
-#=>
-
-print("net verhogen en hoek hebben een invloed op de algemene vangstkans")
-
+### 1.3.5. Net verhogen en hoek hebben een invloed op de **algemene** vangstkans
+Model:
+```{r vangstkans algemeen - Model}
 model5 <- lm(hoeken_data_compiled$totaal_fuik ~ as.factor(hoeken_data_compiled$`Net verhoogd?`) + as.factor(hoeken_data_compiled$Hoek))
+```
+
+ANOVA:
+```{r vangstkans algemeen - ANOVA, echo=FALSE}
 anova5 <- aov(model5)
 summary(anova5)
+```
 
-## Turkey post-hoc
-
+Tukey post-hoc:
+```{r vangstkans algemeen - Tukey, echo=FALSE}
 TukeyHSD(anova5)
 ```
 
-### 1.3.2. Bespreking van de resultaten Anova
+### 1.3.6. Bespreking van de resultaten Anova
 
 Voor **post-metamorfen** (metamorfen en adulten) detecteren we geen significante impact van de hoek en de net-verhoging. Als we de post-metamorfen opsplitsen blijkt dat er duidelijke verschillen zijn voor adulten en metamorfen.
 
@@ -363,3 +391,173 @@ Voor **metamorfen** detecteren we geen significante impact van de hoek en de net
 Het vangstsucces van de **larven** is voornamelijk beinvloed door de hoek van de fuik (p = 0.005), een voorkeur wordt hierbij gegeven voor een hoek van 45° (p = 0.004). Daarnaast verhoogt ook het verhogen van het net het vangstsucces (p = 0.03) al is dit niet zo uitgesproken als bij de adulten.
 
 De **algemene conclusie** is dat het plaatsen van fuiken, ongeacht het doel-stadium, best gebeurd in een hoek van 45° met een verhoogd net. Als alternatief kunnen de fuiken parallel geplaatst worden. Het plaatsen van fuiken loodrecht op de oever heeft potentieel een negatief effect op het vangstsucces. Dit is het meest uitgesproken bij de larven en de adulten. Wel dient er enige voorzichtigheid m.b.t. het lage aantal vangsten met een hoek van 90° (n = `r n_lood`) aan de man gebracht worden.
+
+## 1.4. Verdict Hypotheses:
+Notes:
+
+- chunck per Hypothese met TRUE FALSE uitkomst 
+- dynamische tekst obv uitkomst
+
+### 1.4.1. Het verhogen van het net vergroot de vangkans van Post-Metamorfen
+```{r test hypothese 1, echo=FALSE}
+param <- "Het verhogen van het net"
+stadia <- "post-metamorfen"
+effect <- Tukey1[[1]][1,1]
+p_value <- Tukey1[[1]][1,4]
+test <- "1"
+
+if( effect > 0 & p_value <= 0.01 ){
+  hypo <- TRUE
+}else{
+  hypo <- FALSE
+}
+
+if(hypo == TRUE ){
+  if( p_value <= 0.01 ){
+    dyn_text <- paste0(param, " vergroot significant de vangstkans van ", stadia, " (p = ",
+                       p_value, ").")
+  }
+  if( p_value <= 0.001 ){
+    dyn_text <- paste0(param, " vergroot zeer significant de vangstkans van ", stadia, " (p = ",
+                       p_value, ").")
+  }
+}else{
+  if ( effect < 0 ){
+    dyn_text <- paste0(param, " verlaagd de vangstkans van ", stadia, " (p = ",
+                       p_value, ").")
+  }
+  if( p_value > 0.01 ){
+    dyn_text <- paste0(param, " heeft geen significante invloed op de vangstkans van ", stadia, " (p = ",
+                       p_value, ").")
+  }
+}
+
+assign(paste0("dyn_text_", test), dyn_text)
+```
+
+Verdict: `r dyn_text_1`
+
+### 1.4.2. Het plaatsen van een fuik in een hoek vergroot de vangstkans van Post-Metamorfen
+#### 1.4.2.a Het plaatsen van een fuik 45° ten opzichte van de oever vergroot de vangstkans van Post-Metamorfen
+
+```{r test hypothese 2a, echo=FALSE}
+param <- "Het plaatsen van een fuik in een hoek van 45°"
+stadia <- "post-metamorfen"
+effect <- Tukey1[[2]][1,1]
+p_value <- Tukey1[[2]][1,4]
+test <- "2a"
+
+if( effect > 0 & p_value <= 0.01 ){
+  hypo <- TRUE
+}else{
+  hypo <- FALSE
+}
+
+if(hypo == TRUE ){
+  if( p_value <= 0.01 ){
+    dyn_text <- paste0(param, " vergroot significant de vangstkans van ", stadia, " (p = ",
+                       p_value, ").")
+  }
+  if( p_value <= 0.001 ){
+    dyn_text <- paste0(param, " vergroot zeer significant de vangstkans van ", stadia, " (p = ",
+                       p_value, ").")
+  }
+}else{
+  if ( effect < 0 ){
+    dyn_text <- paste0(param, " verlaagd de vangstkans van ", stadia, " (p = ",
+                       p_value, ").")
+  }
+  if( p_value > 0.01 ){
+    dyn_text <- paste0(param, " heeft geen significante invloed op de vangstkans van ", stadia, " (p = ",
+                       p_value, ").")
+  }
+}
+
+assign(paste0("dyn_text_", test), dyn_text)
+``` 
+
+Verdict: `r dyn_text_2a`
+
+#### 1.4.2.b Het plaatsen van een fuik 90° (loodrecht) ten opzichte van de oever vergroot de vangstkans van Post-Metamorfen
+```{r test hypothese 2b, echo=FALSE}
+param <- "Het plaatsen van een fuik in een hoek van 90°"
+stadia <- "post-metamorfen"
+effect <- Tukey1[[2]][2,1]
+p_value <- Tukey1[[2]][2,4]
+test <- "2b"
+
+if( effect > 0 & p_value <= 0.01 ){
+  hypo <- TRUE
+}else{
+  hypo <- FALSE
+}
+
+if(hypo == TRUE ){
+  if( p_value <= 0.01 ){
+    dyn_text <- paste0(param, " vergroot significant de vangstkans van ", stadia, " (p = ",
+                       p_value, ").")
+  }
+  if( p_value <= 0.001 ){
+    dyn_text <- paste0(param, " vergroot zeer significant de vangstkans van ", stadia, " (p = ",
+                       p_value, ").")
+  }
+}else{
+  if ( effect < 0 ){
+    dyn_text <- paste0(param, " verlaagd de vangstkans van ", stadia, " (p = ",
+                       p_value, ").")
+  }
+  if( p_value > 0.01 ){
+    dyn_text <- paste0(param, " heeft geen significante invloed op de vangstkans van ", stadia, " (p = ",
+                       p_value, ").")
+  }
+}
+
+assign(paste0("dyn_text_", test), dyn_text)
+``` 
+
+Verdict: `r dyn_text_2b`
+
+### 1.4.3. Het plaatsen van een fuik parallel aan de oever vergroot de vangkans van larven
+
+```{r test hypothese 3, echo=FALSE}
+param <- "Het plaatsen van een fuik in een hoek van 00° (parallel)"
+stadia <- "larven"
+effect <- Tukey2[[2]][1,1]
+effect2 <- Tukey2[[2]][2,1]
+p_value <- Tukey2[[2]][1,4]
+p_value2 <- Tukey2[[2]][2,4]
+test <- "3"
+
+if( effect < 0 & effect2 <0 & p_value <= 0.01 & p_value2 <= 0.01 ){
+  hypo <- TRUE
+}else{
+  hypo <- FALSE
+}
+
+if(hypo == TRUE ){
+  if( p_value <= 0.01 ){
+    dyn_text <- paste0(param, " vergroot significant de vangstkans van ", stadia, " (p = ",
+                       p_value, ").")
+  }
+  if( p_value <= 0.001 ){
+    dyn_text <- paste0(param, " vergroot zeer significant de vangstkans van ", stadia, " (p = ",
+                       p_value, ").")
+  }
+}else{
+  if ( effect < 0  & effect2 > 0){
+    dyn_text <- paste0("De vangstkans van ", stadia," in parallel geplaatste fuiken is hoger dan bij fuiken die in een hoek van 45° geplaatst werden (p= ", p_value, "). Maar lager dan bij fuiken die in een hoek van 90° geplaatst werden (p= ", p_value2, ").")
+  }
+  if ( effect > 0  & effect2 < 0){
+    dyn_text <- paste0("De vangstkans van ", stadia," in parallel geplaatste fuiken is hoger dan bij fuiken die in een hoek van 90° geplaatst werden (p= ", p_value, "). Maar lager dan bij fuiken die in een hoek van 45° geplaatst werden (p= ", p_value2, ").")
+  }
+  if( p_value > 0.01 &   p_value2 > 0.01){
+    dyn_text <- paste0(param, " heeft geen significante invloed op de vangstkans van ", stadia, " (p 45°- 00° = ",
+                       p_value," & p 90°- 00° ", p_value2, ").")
+  }
+}
+
+assign(paste0("dyn_text_", test), dyn_text)
+``` 
+
+Verdict: `r dyn_text_3`
+
