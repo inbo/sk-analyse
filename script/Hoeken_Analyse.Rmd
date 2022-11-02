@@ -3,9 +3,9 @@ title: "Hoeken_Analyse"
 author: "Sander Devisscher"
 date: "`r format(Sys.time(), '%d %B, %Y')`"
 output:
-  word_document: default
-  pdf_document: default
   html_document: default
+  pdf_document: default
+  word_document: default
 ---
 
 ```{r setup, include=FALSE}
@@ -132,22 +132,23 @@ for(s in stadia){
   fn2 <- paste0("nv_", s2)
   fn3 <- paste0("nnv_", s2)
   data <- get(fn)
-  nv_data <- data %>%
+  sum_data <- data %>%
     rename(n = s) %>%
-    filter(`Net verhoogd?`==TRUE) %>%
+    group_by(`Net verhoogd?`) %>%
     summarise(max = max(n, na.rm = TRUE),
               mean = mean(n, na.rm = TRUE),
               med = median(n, na.rm = TRUE),
-              n = n(),
-              perc = percent(n/n_nv, accuracy = 0.01))
-  nnv_data <- data %>%
-    rename(n = s) %>%
-    filter(`Net verhoogd?`==FALSE) %>%
-    summarise(max = max(n, na.rm = TRUE),
-              mean = mean(n, na.rm = TRUE),
-              med = median(n, na.rm = TRUE),
-              n = n(),
-              perc = percent(n/n_nnv, accuracy = 0.01))
+              n = n())
+  
+  nv_data <- sum_data %>% 
+    filter(`Net verhoogd?` == TRUE) %>% 
+    mutate(perc = percent(n/n_nv, accuracy = 0.01))
+  
+  nnv_data <- sum_data %>% 
+    filter(`Net verhoogd?` == FALSE) %>% 
+    mutate(perc = percent(n/n_nnv, accuracy = 0.01))
+  
+  
   assign(fn2, nv_data)
   assign(fn3, nnv_data)
 }
@@ -216,30 +217,28 @@ for(s in stadia){
   fn3 <- paste0("mid_", s2)
   fn4 <- paste0("lood_", s2)
   data <- get(fn)
-  par_data <- data %>%
+  
+  sum_data<- data %>%
     rename(n = s) %>%
-    filter(Hoek=="00°") %>%
+    group_by(Hoek) %>%
     summarise(max = max(n, na.rm = TRUE),
               mean = mean(n, na.rm = TRUE),
               med = median(n, na.rm = TRUE),
-              n = n(),
-              perc = percent(n/n_par, accuracy = 0.01))
-  lood_data <- data %>%
-    rename(n = s) %>%
-    filter(Hoek=="90°") %>%
-    summarise(max = max(n, na.rm = TRUE),
-              mean = mean(n, na.rm = TRUE),
-              med = median(n, na.rm = TRUE),
-              n = n(),
-              perc = percent(n/n_lood, accuracy = 0.01))
-  mid_data <- data %>%
-    rename(n = s) %>%
-    filter(Hoek=="45°") %>%
-    summarise(max = max(n, na.rm = TRUE),
-              mean = mean(n, na.rm = TRUE),
-              med = median(n, na.rm = TRUE),
-              n = n(),
-              perc = percent(n/n_mid, accuracy = 0.01))
+              n = n())
+  
+  par_data <- sum_data %>% 
+    filter(Hoek == "00°") %>% 
+    mutate(perc = percent(n/n_par, accuracy = 0.01))
+    
+  
+  lood_data <- sum_data %>%
+    filter(Hoek == "90°") %>% 
+    mutate(perc = percent(n/n_lood, accuracy = 0.01))
+  
+  mid_data <- sum_data %>%
+    filter(Hoek == "45°") %>% 
+    mutate(perc = percent(n/n_mid, accuracy = 0.01))
+  
   assign(fn2, par_data)
   assign(fn3, mid_data)
   assign(fn4, lood_data)
@@ -351,14 +350,16 @@ summary(anova5)
 ## Turkey post-hoc
 
 TukeyHSD(anova5)
-
-
 ```
 
 ### 1.3.2. Bespreking van de resultaten Anova
 
 Voor **post-metamorfen** (metamorfen en adulten) detecteren we geen significante impact van de hoek en de net-verhoging. Als we de post-metamorfen opsplitsen blijkt dat er duidelijke verschillen zijn voor adulten en metamorfen.
+
 Voor **adulten** is er een duidelijke significante voorkeur voor een verhoogd net (p = 0) alsook een fuik in een hoek van 45° (p = 0). Een fuik in een hoek van 90° geeft de slechtste resultaten (45°>00°>90°).
+
 Voor **metamorfen** detecteren we geen significante impact van de hoek en de net-verhoging.
+
 Het vangstsucces van de **larven** is voornamelijk beinvloed door de hoek van de fuik (p = 0.005), een voorkeur wordt hierbij gegeven voor een hoek van 45° (p = 0.004). Daarnaast verhoogt ook het verhogen van het net het vangstsucces (p = 0.03) al is dit niet zo uitgesproken als bij de adulten.
+
 De **algemene conclusie** is dat het plaatsen van fuiken, ongeacht het doel-stadium, best gebeurd in een hoek van 45° met een verhoogd net. Als alternatief kunnen de fuiken parallel geplaatst worden. Het plaatsen van fuiken loodrecht op de oever heeft potentieel een negatief effect op het vangstsucces. Dit is het meest uitgesproken bij de larven en de adulten. Wel dient er enige voorzichtigheid m.b.t. het lage aantal vangsten met een hoek van 90° (n = `r n_lood`) aan de man gebracht worden.
