@@ -175,7 +175,8 @@ cleanData <- cleanData %>%
          lifeStage,
          eventID, 
          NISCODE, 
-         NAAM)
+         NAAM,
+         provincie)
 ```
 
 ```{r export cleanData}
