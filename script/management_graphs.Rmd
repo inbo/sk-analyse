@@ -14,7 +14,7 @@ library(sf)
 library(tidyverse)
 ```
 
-```{r}
+```{r, include=FALSE}
 cleanData <- read_csv("./interim/Lithobates_catesbeianus_management_data.csv")
 ```
 
@@ -113,6 +113,12 @@ plot(plot_cpue_lifestage)
 # Management map
 
 ```{r map management, echo=FALSE}
+gemeentes <- geojson_sf("../backoffice-wild-analyse/Data/Spatial/gemeentes.geojson")
+gemeentes <- st_transform(gemeentes, 4326)
+provincies <- geojson_sf("../backoffice-wild-analyse/Data/Spatial/provinces.geojson")
+st_crs(provincies) <- st_crs(31370)
+provincies <- st_transform(provincies, 4326)
+
 jaar <- 2018
 
 total_by_year_corrected_gem <- cleanData %>% 
@@ -122,6 +128,7 @@ total_by_year_corrected_gem <- cleanData %>%
   filter(year == jaar,
          !is.na(NISCODE),
          !is.na(NAAM)) %>% 
+  mutate(NISCODE = as.character(NISCODE)) %>% 
   left_join(gemeentes) %>% 
   ungroup() %>% 
   st_as_sf()
@@ -135,6 +142,7 @@ spread <- read_sf("../alien-species-portal/alienSpecies/inst/extdata/be_alientax
   filter(year == as.character(jaar)) %>% 
   left_join(grid, by = c("eea_cell_code" = "CELLCODE")) %>% 
   st_as_sf()
+
 
 library(leaflet)
 
