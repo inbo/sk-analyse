@@ -102,7 +102,7 @@ for(d in datasetkeys){
   
   localities <- verbatimData %>% 
     select(gbifID, verbatimLocality)
-   
+  
   
   if(nrow(locality_output) == 0){
     locality_output <- localities
@@ -176,8 +176,22 @@ cleanData <- cleanData %>%
   left_join(locations)
 ```
 
-# GRAPH: Total number of bullfrogs caught
+```{r select necessary columns}
+cleanData_backup <- cleanData
 
+cleanData <- cleanData_backup
+
+cleanData <- cleanData %>% 
+  select(gbifID,
+         year,
+         individualCount,
+         lifeStage,
+         eventID, 
+         NISCODE, 
+         NAAM)
+```
+
+# GRAPH: Total number of bullfrogs caught
 ```{r total individual caught, include=FALSE}
 total_by_year <- cleanData %>% 
   group_by(year) %>% 
@@ -241,14 +255,13 @@ plot_cpue <- total_by_year_corrected %>%
 plot(plot_cpue)
 ```
 
-
-
 # GRAPH: Catch per unit of effort per lifstage
 
 ```{r capture per unit of effort by lifestage, include=FALSE}
 total_by_year_corrected_lifestage <- cleanData %>% 
   group_by(year) %>% 
-  mutate(effort = n_distinct(eventID)) %>% 
+  mutate(effort = n_distinct(eventID),
+         n = as.integer(sum(individualCount, na.rm = TRUE))) %>% 
   group_by(year, lifeStage) %>% 
   summarise(effort = max(effort),
             n = sum(n, na.rm = TRUE)/effort) %>% 
@@ -279,7 +292,9 @@ total_by_year_corrected_gem <- cleanData %>%
   group_by(year, NISCODE, NAAM) %>% 
   summarise(effort = n_distinct(eventID),
             n = sum(individualCount, na.rm = TRUE)/effort) %>% 
-  filter(year == jaar) %>% 
+  filter(year == jaar,
+         !is.na(NISCODE),
+         !is.na(NAAM)) %>% 
   left_join(gemeentes) %>% 
   ungroup() %>% 
   st_as_sf()
@@ -296,9 +311,17 @@ spread <- read_sf("../alien-species-portal/alienSpecies/inst/extdata/be_alientax
 
 library(leaflet)
 
+if(max(total_by_year_corrected_gem$n) > 500){
+  bins <-  c(0, 10, 100, 200, 300, 400, max(total_by_year_corrected_gem$n))
+  labels <- c("<10", "11-100", "101-200", "201-300", "300-400", paste0("401-",  max(total_by_year_corrected_gem$n)))
+}else{
+  bins <-  c(0, 10, 100, 200, 300, 400, 500)
+  labels <- c("<10", "11-100", "101-200", "201-300", "301-400", "401-500")
+}
+
 pal <- colorBin(palette = "RdYlGn",
-                domain = total_by_year_corrected_gem$n,
-                bins = c(0, 1, 100, 200, 300, 400, 500),
+                domain = as.integer(total_by_year_corrected_gem$n),
+                bins = bins,
                 pretty = TRUE,
                 na.color = "#808080",
                 reverse = TRUE)
@@ -307,9 +330,9 @@ pal <- colorBin(palette = "RdYlGn",
 # MAP: Bullfrog management in `r jaar`
 
 Suggested filters:
- - year
- - region-scale (province/commune)
- - unit (absolute/cpue)
+- year
+- region-scale (province/commune)
+- unit (absolute/cpue)
 
 ```{r echo=FALSE}
 leaflet() %>%
@@ -319,7 +342,7 @@ leaflet() %>%
   addPolylines(data = provincies, 
                weight = 2,
                color = "black") %>% 
-   addPolylines(data = spread, 
+  addPolylines(data = spread, 
                color = "red",
                weight = 1) %>% 
   addPolygons(data = total_by_year_corrected_gem,
@@ -327,6 +350,9 @@ leaflet() %>%
   addLegend(pal = pal,
             values = total_by_year_corrected_gem$n,
             title = "Catch per unit of effort",
-            na.label = 0)
+            na.label = 0,
+            labFormat = function(type, cuts, p) {  # Here's the trick
+              paste0(labels)
+            })
 ```
 
