@@ -94,7 +94,6 @@ for(d in datasetkeys){
   localities <- verbatimData %>% 
     select(gbifID, verbatimLocality)
   
-  
   if(nrow(locality_output) == 0){
     locality_output <- localities
   }else{
