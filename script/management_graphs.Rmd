@@ -86,7 +86,7 @@ plot(plot_cpue)
 
 ```{r capture per unit of effort by lifestage, include=FALSE}
 total_by_year_corrected_lifestage <- cleanData %>% 
-  group_by(year) %>% 
+  group_by(year, lifeStage) %>% 
   mutate(effort = n_distinct(eventID),
          n = as.integer(sum(individualCount, na.rm = TRUE))) %>% 
   group_by(year, lifeStage) %>% 
@@ -95,15 +95,19 @@ total_by_year_corrected_lifestage <- cleanData %>%
   ungroup() %>% 
   add_row(year = 2013,
           lifeStage = "juvenile",
-          effort = 213)
+          n = 0)
 
-plot_cpue_lifestage <- total_by_year_corrected_lifestage %>% 
+total_by_year_corrected_lifestage_2 <- total_by_year_corrected_lifestage %>% 
+  group_by(year) %>% 
+  summarise(effort = max(effort)) %>% 
+  left_join(total_by_year_corrected_lifestage %>% select(-effort), by = "year")
+
+plot_cpue_lifestage <- total_by_year_corrected_lifestage_2 %>% 
   ggplot(aes(x = year, y = n, fill = lifeStage)) +
   geom_bar(stat = "identity") + 
-  geom_line(aes(x = year, y = effort),
-            stat = "identity") +
+  geom_line(aes(x = year, y = effort*100), stat = "unique") +
   scale_y_continuous(name = "Total catch per unit of effort",
-                     sec.axis = sec_axis(trans=~., name="effort"))
+                     sec.axis = sec_axis(trans = ~./100, name="effort"))
 ```
 
 ```{r echo=FALSE}
