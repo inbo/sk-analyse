@@ -207,7 +207,7 @@ cleanData <- cleanData %>%
 cleanData <- cleanData %>% 
   select(gbifID,
          year,
-         individualCount,
+         individualCount = n,
          lifeStage,
          eventID,
          locationID,
