@@ -166,6 +166,43 @@ cleanData <- cleanData %>%
   left_join(locations)
 ```
 
+```{r add n_fuiken}
+met_fuiknr_1 <- cleanData %>% 
+  filter(locality != "") %>% 
+  mutate(fuiknr = as.numeric(gsub(pattern = "Fuik ",
+                       replacement = "",
+                       locality)),
+         fuiknr = case_when(gbifID == 1135634678 ~ 3, # fuiknr zonder spatie
+                            TRUE ~ fuiknr)) 
+
+zndr_fuiknr_2 <- met_fuiknr_1 %>% 
+  filter(is.na(fuiknr)) %>% 
+  select(-fuiknr)
+
+met_fuiknr_2 <- met_fuiknr_1 %>% 
+  filter(!is.na(fuiknr)) %>% 
+  group_by(eventDate, locationID) %>% 
+  mutate(n_fuiken = max(fuiknr, na.rm = TRUE)) %>% 
+  ungroup() %>% 
+  distinct(eventID, n_fuiken)
+
+summary(met_fuiknr_1$fuiknr)
+
+zndr_fuiknr_1 <- cleanData %>% 
+  filter(locality == "")
+
+zndr_fuiknr <- rbind(zndr_fuiknr_1, zndr_fuiknr_2) %>% 
+  group_by(eventID) %>% 
+  summarise(n_fuiken = n())
+
+n_fuiken <- rbind(met_fuiknr_2, zndr_fuiknr) %>% 
+  group_by(eventID) %>% 
+  summarise(n_fuiken = max(n_fuiken, na.rm = TRUE))
+
+cleanData <- cleanData %>% 
+  left_join(n_fuiken, by = "eventID")
+```
+
 ```{r select necessary columns}
 cleanData <- cleanData %>% 
   select(gbifID,
@@ -177,7 +214,9 @@ cleanData <- cleanData %>%
          NISCODE, 
          NAAM,
          provincie, 
-         verbatimLocality)
+         verbatimLocality,
+         locality,
+         n_fuiken)
 ```
 
 ```{r export cleanData}
