@@ -65,17 +65,20 @@ plot(cum_by_year)
 # GRAPH: Catch per unit of effort
 ```{r total individuals caught by unit of effort, include=FALSE}
 total_by_year_corrected <- cleanData %>% 
+  group_by(eventID, year) %>% 
+  summarise(effort = max(n_fuiken, na.rm = TRUE),
+            n = sum(individualCount, na.rm = TRUE)/effort) %>% 
   group_by(year) %>% 
-  summarise(effort = n_distinct(eventID),
-            n = sum(individualCount, na.rm = TRUE)/effort) 
+  summarise(effort = sum(effort, na.rm = TRUE),
+            n = sum(n, na.rm = TRUE))
 
 plot_cpue <- total_by_year_corrected %>% 
   ggplot(aes(x = year, y = n)) +
   geom_bar(stat = "identity") + 
-  geom_line(aes(x = year, y = effort),
+  geom_line(aes(x = year, y = effort*10),
             stat = "identity") +
   scale_y_continuous(name = "Total catch per unit of effort",
-                     sec.axis = sec_axis(trans=~., name="effort"))
+                     sec.axis = sec_axis(trans = ~./10, name = "effort"))
 ```
 
 ```{r echo=FALSE}
@@ -86,12 +89,13 @@ plot(plot_cpue)
 
 ```{r capture per unit of effort by lifestage, include=FALSE}
 total_by_year_corrected_lifestage <- cleanData %>% 
+  group_by(eventID, year, lifeStage) %>% 
+  summarise(effort = max(n_fuiken, na.rm = TRUE),
+            n = sum(individualCount, na.rm = TRUE)/effort) %>% 
   group_by(year, lifeStage) %>% 
-  mutate(effort = n_distinct(eventID),
-         n = as.integer(sum(individualCount, na.rm = TRUE))) %>% 
-  summarise(effort = max(effort, na.rm = TRUE),
-            n = sum(n, na.rm = TRUE)/effort) %>% 
-  ungroup() 
+  summarise(effort = sum(effort, na.rm = TRUE),
+            n = sum(n, na.rm = TRUE)) %>% 
+  ungroup()
 
 lifeStage_years_combo <- total_by_year_corrected_lifestage %>% 
   expand(year, lifeStage) %>% 
@@ -108,9 +112,9 @@ total_by_year_corrected_lifestage_2 <- total_by_year_corrected_lifestage %>%
 plot_cpue_lifestage <- total_by_year_corrected_lifestage_2 %>% 
   ggplot(aes(x = year, y = n, fill = lifeStage)) +
   geom_bar(stat = "identity") + 
-  geom_line(aes(x = year, y = effort*100), stat = "unique") +
+  geom_line(aes(x = year, y = effort*45), stat = "unique") +
   scale_y_continuous(name = "Total catch per unit of effort",
-                     sec.axis = sec_axis(trans = ~./100, name="effort"))
+                     sec.axis = sec_axis(trans = ~./45, name="effort"))
 ```
 
 ```{r echo=FALSE}
@@ -129,16 +133,19 @@ provincies <- st_transform(provincies, 4326)
 jaar <- 2018
 
 total_by_year_corrected_gem <- cleanData %>% 
-  group_by(year, NISCODE, NAAM) %>% 
-  summarise(effort = n_distinct(eventID),
+  group_by(eventID, year, NISCODE, NAAM) %>% 
+  summarise(effort = max(n_fuiken, na.rm = TRUE),
             n = sum(individualCount, na.rm = TRUE)/effort) %>% 
+  group_by(year, NISCODE, NAAM) %>% 
+  summarise(effort = sum(effort, na.rm = TRUE),
+            n = sum(n, na.rm = TRUE)/effort) %>% 
   filter(year == jaar,
          !is.na(NISCODE),
          !is.na(NAAM)) %>% 
   mutate(NISCODE = as.character(NISCODE)) %>% 
   left_join(gemeentes) %>% 
-  ungroup() %>% 
-  st_as_sf()
+  ungroup()  %>% 
+  st_as_sf() 
 
 grid <- read_sf("../alien-species-portal/alienSpecies/inst/extdata/grid/be_1km.shp") %>% 
   st_as_sf() %>% 
@@ -198,7 +205,7 @@ leaflet() %>%
             })
 ```
 
-# Graoh: No locations managed
+# Graph: Nr of locations managed
 ```{r echo=FALSE}
 locations_managed <- cleanData %>% 
   group_by(year) %>% 
