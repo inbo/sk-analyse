@@ -172,10 +172,12 @@ cleanData <- cleanData %>%
          year,
          individualCount,
          lifeStage,
-         eventID, 
+         eventID,
+         locationID,
          NISCODE, 
          NAAM,
-         provincie)
+         provincie, 
+         verbatimLocality)
 ```
 
 ```{r export cleanData}
