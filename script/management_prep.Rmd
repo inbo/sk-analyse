@@ -109,6 +109,12 @@ cleanData <- cleanData %>%
   left_join(locality_output)
 ```
 
+```{r redetermine an event}
+cleanData <- cleanData %>% 
+  group_by(eventDate, locationID) %>% 
+  mutate(eventID = uuid::UUIDgenerate())
+```
+
 ```{r data cleaning, include=FALSE}
 cleanData <- cleanData %>% 
   filter(samplingProtocol != "field observation",
