@@ -61,8 +61,11 @@ cum_by_year <- cleanData %>%
 plot(cum_by_year)
 ```
 
+# **ENG: GRAPH: Catch per unit of effort (CPUE)**
 
-# GRAPH: Catch per unit of effort
+One unit of effort (UE) is one double fyke net which has been placed into a pond for
+24h. 
+
 ```{r total individuals caught by unit of effort, include=FALSE}
 total_by_year_corrected <- cleanData %>% 
   group_by(eventID, year) %>% 
@@ -75,10 +78,10 @@ total_by_year_corrected <- cleanData %>%
 plot_cpue <- total_by_year_corrected %>% 
   ggplot(aes(x = year, y = n)) +
   geom_bar(stat = "identity") + 
-  geom_line(aes(x = year, y = effort*10),
+  geom_line(aes(x = year, y = effort*45),
             stat = "identity") +
   scale_y_continuous(name = "Total catch per unit of effort",
-                     sec.axis = sec_axis(trans = ~./10, name = "effort"))
+                     sec.axis = sec_axis(trans = ~./45, name = "effort"))
 ```
 
 ```{r echo=FALSE}
