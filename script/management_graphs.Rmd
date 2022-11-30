@@ -89,18 +89,21 @@ total_by_year_corrected_lifestage <- cleanData %>%
   group_by(year, lifeStage) %>% 
   mutate(effort = n_distinct(eventID),
          n = as.integer(sum(individualCount, na.rm = TRUE))) %>% 
-  group_by(year, lifeStage) %>% 
-  summarise(effort = max(effort),
+  summarise(effort = max(effort, na.rm = TRUE),
             n = sum(n, na.rm = TRUE)/effort) %>% 
-  ungroup() %>% 
-  add_row(year = 2013,
-          lifeStage = "juvenile",
-          n = 0)
+  ungroup() 
+
+lifeStage_years_combo <- total_by_year_corrected_lifestage %>% 
+  expand(year, lifeStage) %>% 
+  left_join(total_by_year_corrected_lifestage %>% 
+              select(-effort), by = c("year", "lifeStage"))
 
 total_by_year_corrected_lifestage_2 <- total_by_year_corrected_lifestage %>% 
   group_by(year) %>% 
-  summarise(effort = max(effort)) %>% 
-  left_join(total_by_year_corrected_lifestage %>% select(-effort), by = "year")
+  summarise(effort = max(effort, na.rm = TRUE)) %>% 
+  left_join(lifeStage_years_combo, by = "year") %>% 
+  mutate(n = case_when(is.na(n) ~ 0,
+                       TRUE ~ n))
 
 plot_cpue_lifestage <- total_by_year_corrected_lifestage_2 %>% 
   ggplot(aes(x = year, y = n, fill = lifeStage)) +
