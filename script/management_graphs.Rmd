@@ -88,7 +88,7 @@ plot_cpue <- total_by_year_corrected %>%
 plot(plot_cpue)
 ```
 
-# GRAPH: Catch per unit of effort per lifstage
+# GRAPH: Catch per unit of effort per lifestage
 
 ```{r capture per unit of effort by lifestage, include=FALSE}
 total_by_year_corrected_lifestage <- cleanData %>% 
