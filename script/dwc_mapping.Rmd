@@ -171,33 +171,30 @@ occurrence %<>% mutate(dwc_occurrenceStatus = case_when(
 ### eventID
 
 ```{r}
-occurrence %<>% mutate(dwc_eventID = sample_cd)
+occurrence %<>% mutate(dwc_eventID = event_id)
 ```
 
 ### eventDate
 
 ```{r}
-occurrence %<>% mutate(dwc_eventDate_begin = as.Date(sampling_date_b))
+occurrence %<>% mutate(dwc_eventDate = datum)
 ```
-```{r}
-occurrence %<>% mutate(dwc_eventDate_end = as.Date(sampling_date_e))
-```
-```{r}
-occurrence %<>% mutate(dwc_eventDate = paste(occurrence$sampling_date_b, "/" , occurrence$sampling_date_e))
-```
+
+
 
 
 ### habitat
 
 ```{r}
-occurrence %<>% mutate(dwc_habitat = sampling_site_desc)
+occurrence %<>% mutate(dwc_habitat = recode(type
+                                            , 'Stilstaand' = 'freshwater; stagnant'))
 ```
 
 ### samplingProtocol
 
 ```{r}
-occurrence %<>% mutate(dwc_samplingProtocol = recode(method_cd
-                                                     ,"SW" = "sweepnet"
+occurrence %<>% mutate(dwc_samplingProtocol = recode(actie
+                                                     ,"Afvangst" = "catch, fike"
                                                      ,"YPT" = "yellow pan tras"
                                                      ,"MT" = "Malaise trap"
                                                      ,"RsPT" = "pink pan traps"
@@ -210,12 +207,23 @@ occurrence %<>% mutate(dwc_samplingProtocol = recode(method_cd
 ### sex
 
 ```{r}
-occurrence %<>% mutate(dwc_sex = case_when (
-                       mm > 0 & ff > 0 ~ paste(occurrence$male, "male |", occurrence$female, "female")
-                    ,mm == 0 & ff > 0 ~ paste(occurrence$female, "female")
-                    ,mm > 0 & ff == 0 ~ paste(occurrence$male, "male")
-))
 
+```
+
+### lifeStage
+
+```{r}
+occurrence %<>% mutate (dwc_lifeStage = recode(lifestage 
+                                               ,"M2" = " "
+                                               ,"AM" = "ADult Man "
+                                               ,"AV" = " "
+                                               ,"L0" = " "
+                                               ,"L1" = " "
+                                               ,"L00" = " "
+                                               ,"L2" = " "
+                                               ,"M1" = " "))
+
+#ask Sander for info
 
 ```
 
@@ -223,43 +231,16 @@ occurrence %<>% mutate(dwc_sex = case_when (
 ### locationID
 
 ```{r}
-occurrence %<>% mutate(dwc_locationID = sampling_site_cd)
-```
-### stateProvince
-
-```{r}
-occurrence %<>% mutate(dwc_stateProvince = province_cd)
-
+occurrence %<>% mutate(dwc_locationID = location_id)
 ```
 
 
 ### locality
 
 ```{r}
-occurrence %<>% mutate(dwc_locality = locality_nm)
+occurrence %<>% mutate(dwc_locality = locatie)
 
 ```
-
-### location
-
-```{r}
-occurrence %<>% mutate(dwc_location = location_nm)
-
-```
-
-### locationID
-
-```{r}
-occurrence %<>% mutate(dwc_locationID = sampling_site_cd)
-
-```
-
-### altitude
-
-```{r}
-occurrence %<>% mutate(dwc_verbatimElevation = altitude)
-```
-
 
 
 ### continent
@@ -271,21 +252,10 @@ occurrence %<>% mutate(dwc_continent = "Europe")
 ### countryCode
 
 ```{r}
-occurrence %<>% mutate(dwc_countryCode = country_cd)
+occurrence %<>% mutate(dwc_countryCode = 'BE')
 ```
 
-### stateProvince
 
-```{r}
-occurrence %<>% mutate(dwc_stateProvince = province_cd
-)
-```
-
-### municipality
-
-```{r}
-occurrence %<>% mutate(dwc_municipality = municipality_pt_nm)
-```
 
 ### locationRemarks
 
@@ -296,7 +266,7 @@ occurrence %<>% mutate(dwc_municipality = municipality_pt_nm)
 ```{r}
 occurrence %<>% mutate(dwc_decimalLatitude = sprintf(
   "%.5f",
-  round(decimal_latitude, digits = 5)
+  round(lat, digits = 5)
 ))
 ```
 
@@ -305,7 +275,7 @@ occurrence %<>% mutate(dwc_decimalLatitude = sprintf(
 ```{r}
 occurrence %<>% mutate(dwc_decimalLongitude = sprintf(
   "%.5f",
-  round(decimal_longitude, digits = 5)
+  round(long, digits = 5)
 ))
 ```
 
@@ -322,21 +292,18 @@ occurrence %<>% mutate(dwc_coordinateUncertaintyInMeters = "30")
 ```
 ### Identification
 
+
 ```{r}
-occurrence %<>% mutate(dwc_typeStatus = "type")
+occurrence %<>% mutate(dwc_identifiedBy = 'INBO FIS')
 ```
 
 ```{r}
-occurrence %<>% mutate(dwc_identifiedBy = identified_by)
-```
-
-```{r}
-occurrence %<>% mutate(dwc_identifiedByID = "https://orcid.org/0000-0001-5198-5928")
+#occurrence %<>% mutate(dwc_identifiedByID = "https://orcid.org/0000-0001-5198-5928")
 ```
 
 
 ```{r}
-occurrence %<>% mutate(dwc_dateIdentified = identified_date)
+#occurrence %<>% mutate(dwc_dateIdentified = identified_date)
 ```
 
 
@@ -345,7 +312,7 @@ occurrence %<>% mutate(dwc_dateIdentified = identified_date)
 ### scientificName
 
 ```{r}
-occurrence %<>% mutate(dwc_scientificName = species_nm_full)
+occurrence %<>% mutate(dwc_scientificName = scientificname)
 ```
 
 ### kingdom
@@ -405,7 +372,7 @@ occurrence %>% head()
 Save to CSV:
 
 ```{r}
-write_csv(occurrence, here::here("datasets", "mediteranian-medetera-occurrences", "data", "processed", "occurrence.csv"), na = "")
+write_csv(occurrence, here::here("darwincore", "processed", "occurrenceSK.csv"), na = "")
 ```
 
 # Checks
