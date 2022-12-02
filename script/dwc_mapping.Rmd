@@ -101,7 +101,7 @@ occurrence %<>% mutate(dwc_license = "http://creativecommons.org/publicdomain/ze
 ### rightsHolder
 
 ```{r}
-occurrence %<>% mutate(dwc_rightsHolder = "dataset authors")
+occurrence %<>% mutate(dwc_rightsHolder = "INBO")
 ```
 
 ### accessRights
@@ -122,7 +122,7 @@ occurrence %<>% mutate(dwc_datasetID = "")
 ### datasetName
 
 ```{r}
-occurrence %<>% mutate(dwc_datasetName = "New Mediterranean Medetera with eye colour patterns")
+occurrence %<>% mutate(dwc_datasetName = "Invasive Bullfrog occurrences in Flanders")
 ```
 
 ### basisOfRecord
@@ -135,7 +135,7 @@ occurrence %<>% mutate(dwc_basisOfRecord = "HumanObservation")
 
 
 ```{r}
-occurrence %<>% mutate(dwc_occurrenceID = str_c("Med:med:" , occurrence_id))
+occurrence %<>% mutate(dwc_occurrenceID = occurrence_id)
 ```
 
 
@@ -144,7 +144,7 @@ occurrence %<>% mutate(dwc_occurrenceID = str_c("Med:med:" , occurrence_id))
 ### recordedBy
 
 ```{r}
-occurrence %<>% mutate(dwc_recordedBy = collector_nm)
+occurrence %<>% mutate(dwc_recordedBy = 'INBO team FIS')
 ```
 
 ### individualCount
@@ -152,13 +152,8 @@ occurrence %<>% mutate(dwc_recordedBy = collector_nm)
 ```{r}
 #mutate(occurrence$mm)as.numeric()
   
-occurrence %<>% mutate(male = occurrence$mm <- as.numeric(as.character(occurrence$mm)))  %<>%
-                mutate(female = occurrence$mm <- as.numeric(as.character(occurrence$ff)))  
+occurrence %<>% mutate(dwc_individualCount = individual_count)
 
-
-```
-```{r}
-occurrence %<>% mutate(dwc_individualCount = male + female)
 ```
 
 
