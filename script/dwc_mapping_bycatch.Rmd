@@ -146,7 +146,7 @@ occurrence %<>% mutate(dwc_recordedBy = 'INBO team FIS')
 ```{r}
 #mutate(occurrence$mm)as.numeric()
   
-occurrence %<>% mutate(dwc_individualCount = individual_count)
+#occurrence %<>% mutate(dwc_individualCount = '1')
 
 ```
 
@@ -156,16 +156,13 @@ occurrence %<>% mutate(dwc_individualCount = individual_count)
 ### occurrenceStatus
 
 ```{r}
-occurrence %<>% mutate(dwc_occurrenceStatus = case_when(
-  dwc_individualCount > 0 ~ "present",
-  dwc_individualCount == 0 ~ "absent"
-))
+occurrence %<>% mutate(dwc_occurrenceStatus = 'present')
 ```
 
 ### eventID
 
 ```{r}
-occurrence %<>% mutate(dwc_eventID = event_id)
+occurrence %<>% mutate(dwc_eventID = str_replace_all(event_id, " ",""))
 ```
 
 ### eventDate
@@ -201,13 +198,13 @@ occurrence %<>% mutate(dwc_samplingProtocol = recode(actie
 ### sex
 
 ```{r}
-
+occurrence %<>% mutate(dwc_sex = 'unknown')
 ```
 
 ### lifeStage
 
 ```{r}
-occurrence %<>% mutate (dwc_lifeStage = 'unknown')
+occurrence %<>% mutate(dwc_lifeStage = 'unknown')
 
 #ask Sander for info
 
@@ -370,4 +367,5 @@ test2 <- length(unique(occurrence$occurrenceID))
 n_occur <- data.frame(table(occurrence$occurrenceID))
 
 ```
+
 

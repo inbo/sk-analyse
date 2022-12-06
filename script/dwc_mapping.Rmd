@@ -170,8 +170,9 @@ occurrence %<>% mutate(dwc_occurrenceStatus = case_when(
 
 ### eventID
 
+
 ```{r}
-occurrence %<>% mutate(dwc_eventID = event_id)
+occurrence %<>% mutate(dwc_eventID = str_replace_all(event_id, " ",""))
 ```
 
 ### eventDate
@@ -207,6 +208,15 @@ occurrence %<>% mutate(dwc_samplingProtocol = recode(actie
 ### sex
 
 ```{r}
+occurrence %<>% mutate (dwc_sex = recode(lifestage 
+                                               ,"M2" = ""
+                                               ,"AM" = "male"
+                                               ,"AV" = "female"
+                                               ,"L0" = ""
+                                               ,"L1" = ""
+                                               ,"L00" = ""
+                                               ,"L2" = ""
+                                               ,"M1" = ""))
 
 ```
 
@@ -214,14 +224,14 @@ occurrence %<>% mutate(dwc_samplingProtocol = recode(actie
 
 ```{r}
 occurrence %<>% mutate (dwc_lifeStage = recode(lifestage 
-                                               ,"M2" = " "
-                                               ,"AM" = "ADult Man "
-                                               ,"AV" = " "
-                                               ,"L0" = " "
-                                               ,"L1" = " "
-                                               ,"L00" = " "
-                                               ,"L2" = " "
-                                               ,"M1" = " "))
+                                                ,"M2" = "metamorph without tail"
+                                               ,"AM" = "adult male"
+                                               ,"AV" = "adult female"
+                                               ,"L0" = "larvae no legs"
+                                               ,"L1" = "larvae with hind legs < 1cm"
+                                               ,"L00" = "smallest larvae < 5cm no legs"
+                                               ,"L2" = "larvae with hind legs > 1cm"
+                                               ,"M1" = "metamorph with tail"))
 
 #ask Sander for info
 
