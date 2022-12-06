@@ -225,8 +225,8 @@ occurrence %<>% mutate (dwc_sex = recode(lifestage
 ```{r}
 occurrence %<>% mutate (dwc_lifeStage = recode(lifestage 
                                                 ,"M2" = "metamorph without tail"
-                                               ,"AM" = "adult male"
-                                               ,"AV" = "adult female"
+                                               ,"AM" = "adult"
+                                               ,"AV" = "adult"
                                                ,"L0" = "larvae no legs"
                                                ,"L1" = "larvae with hind legs < 1cm"
                                                ,"L00" = "smallest larvae < 5cm no legs"
