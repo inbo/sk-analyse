@@ -146,7 +146,7 @@ occurrence %<>% mutate(dwc_recordedBy = 'INBO team FIS')
 ```{r}
 #mutate(occurrence$mm)as.numeric()
   
-#occurrence %<>% mutate(dwc_individualCount = '1')
+occurrence %<>% mutate(dwc_individualCount = '')
 
 ```
 
@@ -296,7 +296,14 @@ occurrence %<>% mutate(dwc_identifiedBy = 'INBO FIS')
 
 ```{r}
 occurrence %<>% mutate(dwc_scientificName = scientificname)
+
 ```
+```{r}
+occurrence %<>% filter(!is.na(dwc_scientificName))
+
+#df %>% filter(!is.na(col1))
+```
+
 
 ### kingdom
 

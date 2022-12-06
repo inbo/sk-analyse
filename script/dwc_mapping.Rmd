@@ -209,14 +209,14 @@ occurrence %<>% mutate(dwc_samplingProtocol = recode(actie
 
 ```{r}
 occurrence %<>% mutate (dwc_sex = recode(lifestage 
-                                               ,"M2" = ""
+                                               ,"M2" = "unknown"
                                                ,"AM" = "male"
                                                ,"AV" = "female"
-                                               ,"L0" = ""
-                                               ,"L1" = ""
-                                               ,"L00" = ""
-                                               ,"L2" = ""
-                                               ,"M1" = ""))
+                                               ,"L0" = "unknown"
+                                               ,"L1" = "unknown"
+                                               ,"L00" = "unknown"
+                                               ,"L2" = "unknown"
+                                               ,"M1" = "unknown"))
 
 ```
 
