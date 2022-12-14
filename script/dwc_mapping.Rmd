@@ -233,7 +233,7 @@ occurrence %<>% mutate (dwc_lifeStage = recode(lifestage
                                                ,"L2" = "larvae with hind legs > 1cm"
                                                ,"M1" = "metamorph with tail"))
 
-#ask Sander for info
+
 
 ```
 
