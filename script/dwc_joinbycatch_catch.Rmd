@@ -1,0 +1,49 @@
+---
+title: "BullFrog Join"
+author: "Dimitri Brosens"
+date: "2022-12-06"
+output: html_document
+---
+
+# Setup 
+
+```{r setup, include = FALSE}
+knitr::opts_chunk$set(echo = TRUE, warning = FALSE, message = TRUE)
+```
+
+Load libraries:
+
+```{r message = FALSE}
+library(tidyverse)      # To do data science
+library(tidylog)        # To provide feedback on dplyr functions
+library(magrittr)       # To use %<>% pipes
+library(here)           # To find files
+library(janitor)        # To clean input data
+library(readxl)         # To read Excel files
+library(rgbif)          # To use GBIF services
+library(uuid)           # To generate UUID's
+```
+
+# Read source data
+
+
+
+```{r}
+occurrence1 <- read_delim(here::here("darwincore","processed", "occurrenceSK.csv"), ",")
+
+occurrence2 <- read_delim(here::here("darwincore","processed", "occurrenceSKBC.csv"), ",")
+
+
+```
+
+#  union two dataframes  without duplicates
+
+```{r}
+occurrence <- union(occurrence1,occurrence2)
+```
+
+Save to CSV:
+
+```{r}
+write_csv(occurrence, here::here("darwincore", "processed", "occurrence.csv"), na = "")
+```
