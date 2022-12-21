@@ -58,6 +58,7 @@ gebruikers <- read_sheet("1_cBgfSjnxakLAQ9uGunDt_-Mk4L0uDx2-qv6cKCzkSk",
 ```{r combine vijvers with actiedata}
 #fix enkele gekende problemen 
 data <- rawdata %>% 
+  filter(!is.na(Tijdstempel)) %>% 
   mutate(Locatie = tolower(`Vijver - Andere`),
          Locatie = case_when(Locatie == "arendonk 2 b" ~ "arendonk 2b",
                              Locatie == "arendonk - visput" ~ "arendonk-visput",
@@ -89,7 +90,10 @@ data <- data %>%
                                   TRUE ~ Organisation))
 
 Organisation_unknown <- data %>% 
-  filter(Organisation == "Unknown")
+  filter(Organisation == "Unknown") %>% 
+  select(Tijdstempel, `E-mailadres`, Invuller, Organisation)
+
+write_csv(Organisation_unknown, "./interim/Organisation_unknown.csv")
 ```
 
 ## Datacleaning
