@@ -42,6 +42,11 @@ vijvers <- read_sheet("1_cBgfSjnxakLAQ9uGunDt_-Mk4L0uDx2-qv6cKCzkSk",
 bijvangst <- read_sheet("1myx434jMfys4rxGH-7oRqgkl4Hzl98CgKK7nsg7oia0",
                         sheet = "Blad1",
                         col_types = "c")
+
+gebruikers <- read_sheet("1_cBgfSjnxakLAQ9uGunDt_-Mk4L0uDx2-qv6cKCzkSk",
+                        sheet = "Gebruikers",
+                        col_types = "c") %>% 
+  select(-Invuller)
 ```
 
 ## Vijvers
@@ -72,6 +77,19 @@ not_linked <- data %>%
   distinct(Locatie)
 
 # Resterende niet gekoppelde acties zijn minder relevant (17/11: 24 acties)
+```
+
+```{r add gebruikers}
+data <- data %>% 
+  left_join(gebruikers, by = c("E-mailadres" = "Email")) %>% 
+  mutate(Organisation = case_when(is.na(Organisation) & Invuller == "kris meeus" ~ "Natuurwerk",
+                                  is.na(Organisation) & Invuller == "Pieter Liekens" ~ "Natuurpunt",
+                                  is.na(Organisation) & Invuller == "pieter liekens" ~ "Natuurpunt",
+                                  is.na(Organisation) ~ "Unknown",
+                                  TRUE ~ Organisation))
+
+Organisation_unknown <- data %>% 
+  filter(Organisation == "Unknown")
 ```
 
 ## Datacleaning
