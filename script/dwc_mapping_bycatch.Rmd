@@ -295,7 +295,9 @@ occurrence %<>% mutate(dwc_identifiedBy = 'INBO FIS')
 ### scientificName
 
 ```{r}
-occurrence %<>% mutate(dwc_scientificName = scientificname)
+occurrence %<>% mutate(dwc_scientificName = recode(scientificname
+                                                     ,"Distycus spec." = "Distycus"
+                                                      ))
 
 ```
 ```{r}
