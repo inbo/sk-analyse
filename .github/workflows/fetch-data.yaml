@@ -1,6 +1,10 @@
 on:
   schedule:
     - cron: "* * * * *"
+    
+  push:
+    branches:
+    - '14-automate-sk-dataflow'
 
 name: fetch-data
 
