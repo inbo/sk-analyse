@@ -15,15 +15,12 @@ library(uuid)
 library(rgbif)
 library(tidyverse)
 library(tidylog)
-
-options(gargle_oauth_cache = ".secrets")
 ```
 
 ```{r authenticate}
 if(Sys.getenv("GSHEET_ID") != ""){
   print("using actions environment")
-  gs4_auth(email = Sys.getenv("GSHEET_ID"),
-           cache = ".secrets")
+  gs4_deauth()
 }else{
   print("using local environment")
   gs4_auth(email = Sys.getenv("email"))
