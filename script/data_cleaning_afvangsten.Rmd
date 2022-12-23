@@ -23,7 +23,7 @@ options(gargle_oauth_cache = ".secrets")
 if(Sys.getenv("GSHEET_ID") != ""){
   print("using actions environment")
   gs4_auth(email = Sys.getenv("GSHEET_ID"),
-           cache = ".secrets/")
+           cache = ".secrets")
 }else{
   print("using local environment")
   gs4_auth(email = Sys.getenv("email"))
