@@ -18,9 +18,10 @@ library(tidylog)
 ```
 
 ```{r authenticate}
-if(Sys.getenv("GSHEET_TOKEN") != ""){
+if(Sys.getenv("GSHEET_KEY") != ""){
   print("using actions environment")
-  gs4_auth(token = Sys.getenv("GSHEET_TOKEN"))
+  gs4_auth(key = Sys.getenv("GSHEET_KEY"),
+           secret = Sys.getenv("GSHEET_SECRET"))
 }else{
   print("using local environment")
   gs4_auth(email = Sys.getenv("email"))
