@@ -116,7 +116,7 @@ occurrence %<>% mutate(dwc_datasetID = "")
 ### datasetName
 
 ```{r}
-occurrence %<>% mutate(dwc_datasetName = "Invasive Bullfrog occurrences in Flanders, bycatch")
+occurrence %<>% mutate(dwc_datasetName = "Invasive species - American bullfrog (Lithobates catesbeianus) in Flanders, Belgium (post 2018)")
 ```
 
 ### basisOfRecord
@@ -158,6 +158,11 @@ occurrence %<>% mutate(dwc_individualCount = '')
 ```{r}
 occurrence %<>% mutate(dwc_occurrenceStatus = 'present')
 ```
+
+```{r}
+occurrence %<>% mutate(dwc_occurrenceRemarks = 'bycatch')
+```
+
 
 ### eventID
 
