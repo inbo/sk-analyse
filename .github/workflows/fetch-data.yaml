@@ -26,6 +26,8 @@ jobs:
       GITHUB_TOKEN: ${{ secrets.AUTOMATISATION }}
       GSHEET_KEY: ${{ secrets.GSHEET_KEY }}
       GSHEET_SECRET: ${{ secrets.GSHEET_SECRET }}
+      GSHEET_ID: ${{ secrets.GSHEET_ID }}
+      ENV_TEST: ${{ secrets.ENV_TEST }}
 
     steps:
       - name: Checkout repository
