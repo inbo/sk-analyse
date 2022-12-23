@@ -10,6 +10,6 @@ library(knitr)
 
 # create temporary R file
 tempR <- tempfile(fileext = ".R")
-knitr::purl("./src/fetch_data.Rmd", output=tempR)
+knitr::purl("./script/data_cleaning_afvangsten.Rmd", output=tempR)
 source(tempR)
 unlink(tempR)
