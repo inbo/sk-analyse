@@ -5,6 +5,7 @@ on:
   push:
     branches:
     - '14-automate-sk-dataflow'
+    - main
 
 name: fetch-data
 
