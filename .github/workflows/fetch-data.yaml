@@ -65,7 +65,7 @@ jobs:
       - name: Commit and push changes
         uses: devops-infra/action-commit-push@master
         with:
-          github_token: ${{ secrets.WORKFLOWS }}
+          github_token: ${{ secrets.AUTOMATISATION }}
           commit_prefix: "[AUTO]"
           commit_message: "Fetch data"
           target_branch: automatic-update
@@ -78,7 +78,7 @@ jobs:
       - name: Create pull request
         uses: devops-infra/action-pull-request@v0.4.2
         with:
-          github_token: ${{ secrets.WORKFLOWS }}
+          github_token: ${{ secrets.AUTOMATISATION }}
           target_branch: main
           title: "[AUTO] Update data"
           template: .github/PULL_REQUEST_TEMPLATE.md
