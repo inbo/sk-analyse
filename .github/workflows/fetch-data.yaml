@@ -1,12 +1,13 @@
 on:
   schedule:
-    - cron: "0 3 * * *"
+    - cron: "0 0 1,15,30 3-11 * *"
 
   push:
     branches:
     - main
     paths:
-    - data/raw/**
+    - output/**
+    - interim/**
 
 
 name: fetch-data
@@ -25,14 +26,14 @@ jobs:
     env:
       R_REMOTES_NO_ERRORS_FROM_WARNINGS: true
       RSPM: ${{ matrix.config.rspm }}
-      GITHUB_TOKEN: ${{ secrets.WORKFLOWS }}
+      GITHUB_TOKEN: ${{ secrets.AUTOMATISATION }}
 
     steps:
       - name: Checkout repository
         uses: actions/checkout@v3
         with:
           fetch-depth: 0
-          token: ${{ secrets.WORKFLOWS }}
+          token: ${{ secrets.AUTOMATISATION }}
 
       - name: Setup R
         uses: r-lib/actions/setup-r@v2
@@ -52,12 +53,18 @@ jobs:
 
       - name: Install R packages
         run: |
-          source("src/install_packages.R")
+          source("script/install_packages.R")
         shell: Rscript {0}
-
+        
+      - name: Authenticate forms.gsheet@Forms
+        uses: dibenlloch/google-sheets-secrets-action@v1.0.2
+        with:
+        auth-client-email: ${{ secrets.SERVICE_EMAIL }}
+        auth-private-key: ${{ secrets.GSHEETS }}
+        
       - name: Fetch data
         run: |
-          source("src/run_fetch_data.R")
+          source("script/run_fetch_data.R")
         shell: Rscript {0}
 
       - name: Commit and push changes
