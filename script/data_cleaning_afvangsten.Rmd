@@ -30,12 +30,14 @@ if(Sys.getenv("GSHEET_ID") != ""){
 
 # Data
 ## General
-```{r get data}
+```{r get data - rawdata}
 rawdata <- read_sheet("1_cBgfSjnxakLAQ9uGunDt_-Mk4L0uDx2-qv6cKCzkSk",
                       sheet = "Formulierreacties 1",
                       col_types = "c") %>% 
   select(-contains("fuiken?"))
+```
 
+```{r get data - additional data}
 vijvers <- read_sheet("1_cBgfSjnxakLAQ9uGunDt_-Mk4L0uDx2-qv6cKCzkSk",
                       sheet = "Andere Vijvers") %>% 
   filter(!is.na(UUID)) %>% 
