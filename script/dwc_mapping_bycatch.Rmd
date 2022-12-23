@@ -294,12 +294,16 @@ occurrence %<>% mutate(dwc_identifiedBy = 'INBO FIS')
 
 ### scientificName
 
+### scientificName
+
 ```{r}
 occurrence %<>% mutate(dwc_scientificName = recode(scientificname
                                                      ,"Distycus spec." = "Distycus"
                                                       ))
 
 ```
+
+
 ```{r}
 occurrence %<>% filter(!is.na(dwc_scientificName))
 
@@ -319,7 +323,8 @@ occurrence %<>% mutate(dwc_kingdom = "Animalia")
 ### taxonRank
 
 ```{r}
-occurrence %<>% mutate(dwc_taxonRank = "species")
+occurrence %<>% mutate(dwc_taxonRank = case_when(dwc_scientificName == 'Distycus' ~ 'genus'
+                                                 , TRUE ~ "species"))
 ```
 
 ### nomenclaturalCode
