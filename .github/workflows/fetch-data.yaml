@@ -1,8 +1,7 @@
 on:
   schedule:
-    - cron: "* * * * *"
-    
     - cron: "0 0 1,15,30 3-11 *"
+    
   push:
     branches:
     - '14-automate-sk-dataflow'
