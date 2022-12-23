@@ -24,6 +24,7 @@ jobs:
       R_REMOTES_NO_ERRORS_FROM_WARNINGS: true
       RSPM: ${{ matrix.config.rspm }}
       GITHUB_TOKEN: ${{ secrets.AUTOMATISATION }}
+      email: ${{ secrets.SERVICE_EMAIL }}
 
     steps:
       - name: Checkout repository
@@ -52,12 +53,6 @@ jobs:
         run: |
           source("script/install_packages.R")
         shell: Rscript {0}
-        
-      - name: Authenticate forms.gsheet@Forms
-        uses: dibenlloch/google-sheets-secrets-action@v1.0.2
-        with:
-          auth-client-email: ${{ secrets.SERVICE_EMAIL }}
-          auth-private-key: ${{ secrets.GSHEETS }}
         
       - name: Fetch data
         run: |
