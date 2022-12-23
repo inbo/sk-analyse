@@ -15,19 +15,15 @@ library(uuid)
 library(rgbif)
 library(tidyverse)
 library(tidylog)
+
+options(gargle_oauth_cache = ".secrets")
 ```
 
 ```{r authenticate}
-if(Sys.getenv("GSHEET_KEY") != ""){
+if(Sys.getenv("GSHEET_ID") != ""){
   print("using actions environment")
-  print(Sys.getenv("ENV_TEST"))
-   google_app <- httr::oauth_app(
-    "my-awesome-google-api-wrapping-package",
-    key = Sys.getenv("GSHEET_ID"),
-    secret = Sys.getenv("GSHEET_SECRET")
-  )
-  google_key <- Sys.getenv("GSHEET_KEY")
-  gs4_auth_configure(app = google_app, api_key = google_key)
+  gs4_auth(email = Sys.getenv("GSHEET_ID"),
+           cache = ".secrets/")
 }else{
   print("using local environment")
   gs4_auth(email = Sys.getenv("email"))
