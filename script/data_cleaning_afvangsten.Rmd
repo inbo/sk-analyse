@@ -25,7 +25,6 @@ if(Sys.getenv("AUTOMATON") != ""){
   print("using local environment")
   gs4_auth(email = Sys.getenv("email"))
 }
-
 ```
 
 # Data
