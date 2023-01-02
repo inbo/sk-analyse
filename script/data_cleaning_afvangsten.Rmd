@@ -31,14 +31,14 @@ if(Sys.getenv("GSHEET_ID") != ""){
 # Data
 ## General
 ```{r get data - rawdata}
-rawdata <- read_sheet("1_cBgfSjnxakLAQ9uGunDt_-Mk4L0uDx2-qv6cKCzkSk",
+rawdata <- read_sheet(Sys.getenv("SK_FORMS"),
                       sheet = "Formulierreacties 1",
                       col_types = "c") %>% 
   select(-contains("fuiken?"))
 ```
 
 ```{r get data - additional data}
-vijvers <- read_sheet("1_cBgfSjnxakLAQ9uGunDt_-Mk4L0uDx2-qv6cKCzkSk",
+vijvers <- read_sheet(Sys.getenv("SK_FORMS"),
                       sheet = "Andere Vijvers") %>% 
   filter(!is.na(UUID)) %>% 
   mutate(Locatie = tolower(Locatie)) %>% 
@@ -48,7 +48,7 @@ vijvers <- read_sheet("1_cBgfSjnxakLAQ9uGunDt_-Mk4L0uDx2-qv6cKCzkSk",
   mutate(lat = as.numeric(lat),
          long = as.numeric(long))
 
-bijvangst <- read_sheet("1myx434jMfys4rxGH-7oRqgkl4Hzl98CgKK7nsg7oia0",
+bijvangst <- read_sheet(Sys.getenv("BYCATCH"),
                         sheet = "Blad1",
                         col_types = "c")
 ```
