@@ -18,7 +18,7 @@ library(tidylog)
 ```
 
 ```{r authenticate}
-if(Sys.getenv("GSHEET_ID") != ""){
+if(Sys.getenv("AUTOMATON") != ""){
   print("using actions environment")
   gs4_deauth()
 }else{

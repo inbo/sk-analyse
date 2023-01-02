@@ -26,6 +26,7 @@ jobs:
       GITHUB_TOKEN: ${{ secrets.AUTOMATISATION }}
       SK_FORMS: ${{ secrets.SK_FORMS }}
       BYCATCH: ${{ secrets.BYCATCH }}
+      AUTOMATON: ${{ secrets.AUTOMATON}}
 
     steps:
       - name: Checkout repository
