@@ -81,7 +81,7 @@ jobs:
           github_token: ${{ secrets.AUTOMATISATION }}
           target_branch: main
           title: "[AUTO] Update data"
-          template: .github/PULL_REQUEST_TEMPLATE.md
+          template: .github/PR_fetch_data.md
           reviewer: SanderDevisscher
           label: automated workflow
           get_diff: false
