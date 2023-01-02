@@ -17,6 +17,8 @@ library(tidyverse)
 library(tidylog)
 ```
 
+get env variables to authenticate
+
 ```{r authenticate}
 if(Sys.getenv("AUTOMATON") != ""){
   print("using actions environment")
