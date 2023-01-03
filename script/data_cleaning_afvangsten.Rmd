@@ -52,6 +52,11 @@ vijvers <- read_sheet(Sys.getenv("SK_FORMS"),
 bijvangst <- read_sheet(Sys.getenv("BYCATCH"),
                         sheet = "Blad1",
                         col_types = "c")
+
+gebruikers <- read_sheet("1_cBgfSjnxakLAQ9uGunDt_-Mk4L0uDx2-qv6cKCzkSk",
+                        sheet = "Gebruikers",
+                        col_types = "c") %>% 
+  select(-Invuller)
 ```
 
 ## Vijvers
@@ -63,6 +68,7 @@ bijvangst <- read_sheet(Sys.getenv("BYCATCH"),
 ```{r combine vijvers with actiedata}
 #fix enkele gekende problemen 
 data <- rawdata %>% 
+  filter(!is.na(Tijdstempel)) %>% 
   mutate(Locatie = tolower(`Vijver - Andere`),
          Locatie = case_when(Locatie == "arendonk 2 b" ~ "arendonk 2b",
                              Locatie == "arendonk - visput" ~ "arendonk-visput",
@@ -82,6 +88,22 @@ not_linked <- data %>%
   distinct(Locatie)
 
 # Resterende niet gekoppelde acties zijn minder relevant (17/11: 24 acties)
+```
+
+```{r add gebruikers}
+data <- data %>% 
+  left_join(gebruikers, by = c("E-mailadres" = "Email")) %>% 
+  mutate(Organisation = case_when(is.na(Organisation) & Invuller == "kris meeus" ~ "Natuurwerk",
+                                  is.na(Organisation) & Invuller == "Pieter Liekens" ~ "Natuurpunt",
+                                  is.na(Organisation) & Invuller == "pieter liekens" ~ "Natuurpunt",
+                                  is.na(Organisation) ~ "Unknown",
+                                  TRUE ~ Organisation))
+
+Organisation_unknown <- data %>% 
+  filter(Organisation == "Unknown") %>% 
+  select(Tijdstempel, `E-mailadres`, Invuller, Organisation)
+
+write_csv(Organisation_unknown, "./interim/Organisation_unknown.csv")
 ```
 
 ## Datacleaning
