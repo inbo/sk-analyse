@@ -54,8 +54,8 @@ bijvangst <- read_sheet(Sys.getenv("BYCATCH"),
                         col_types = "c")
 
 uitvoerders <- read_sheet("1_cBgfSjnxakLAQ9uGunDt_-Mk4L0uDx2-qv6cKCzkSk",
-                        sheet = "Gebruikers",
-                        col_types = "c") %>% 
+                          sheet = "Gebruikers",
+                          col_types = "c") %>% 
   select(-Invuller)
 ```
 
@@ -149,6 +149,7 @@ afvangsten_per_fuik <- data_afvangsten %>%
   pivot_longer(contains("Fuik", ignore.case = FALSE), 
                values_to = "value",
                values_ptypes = character()) %>% 
+  filter(!is.na(value)) %>% 
   mutate(value = case_when(value == "-1" ~ as.character("NA"),
                            TRUE ~ value)) %>% 
   separate(name, c("fuikNr", "type"), " - ",
