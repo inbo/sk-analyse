@@ -213,6 +213,8 @@ afvangsten_per_vangst <- afvangsten_per_fuik %>%
 # Controle
 n_distinct(afvangsten_per_fuik$Datum, afvangsten_per_fuik$Locatie) == nrow(afvangsten_per_vangst) #Moet TRUE zijn
 
+table(afvangsten_per_vangst$Organisation, useNA = "ifany")
+
 # Export
 write_csv(afvangsten_per_vangst, "./interim/afvangsten_per_vangst.csv")
 ```
