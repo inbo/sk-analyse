@@ -17,19 +17,29 @@ library(tidyverse)
 library(tidylog)
 ```
 
+get env variables to authenticate
+
 ```{r authenticate}
-gs4_auth(email = Sys.getenv("email"))
+if(Sys.getenv("AUTOMATON") != ""){
+  print("using actions environment")
+  gs4_deauth()
+}else{
+  print("using local environment")
+  gs4_auth(email = Sys.getenv("email"))
+}
 ```
 
 # Data
 ## General
-```{r get data}
-rawdata <- read_sheet("1_cBgfSjnxakLAQ9uGunDt_-Mk4L0uDx2-qv6cKCzkSk",
+```{r get data - rawdata}
+rawdata <- read_sheet(Sys.getenv("SK_FORMS"),
                       sheet = "Formulierreacties 1",
                       col_types = "c") %>% 
   select(-contains("fuiken?"))
+```
 
-vijvers <- read_sheet("1_cBgfSjnxakLAQ9uGunDt_-Mk4L0uDx2-qv6cKCzkSk",
+```{r get data - additional data}
+vijvers <- read_sheet(Sys.getenv("SK_FORMS"),
                       sheet = "Andere Vijvers") %>% 
   filter(!is.na(UUID)) %>% 
   mutate(Locatie = tolower(Locatie)) %>% 
@@ -39,9 +49,14 @@ vijvers <- read_sheet("1_cBgfSjnxakLAQ9uGunDt_-Mk4L0uDx2-qv6cKCzkSk",
   mutate(lat = as.numeric(lat),
          long = as.numeric(long))
 
-bijvangst <- read_sheet("1myx434jMfys4rxGH-7oRqgkl4Hzl98CgKK7nsg7oia0",
+bijvangst <- read_sheet(Sys.getenv("BYCATCH"),
                         sheet = "Blad1",
                         col_types = "c")
+
+gebruikers <- read_sheet("1_cBgfSjnxakLAQ9uGunDt_-Mk4L0uDx2-qv6cKCzkSk",
+                        sheet = "Gebruikers",
+                        col_types = "c") %>% 
+  select(-Invuller)
 ```
 
 ## Vijvers
@@ -53,6 +68,7 @@ bijvangst <- read_sheet("1myx434jMfys4rxGH-7oRqgkl4Hzl98CgKK7nsg7oia0",
 ```{r combine vijvers with actiedata}
 #fix enkele gekende problemen 
 data <- rawdata %>% 
+  filter(!is.na(Tijdstempel)) %>% 
   mutate(Locatie = tolower(`Vijver - Andere`),
          Locatie = case_when(Locatie == "arendonk 2 b" ~ "arendonk 2b",
                              Locatie == "arendonk - visput" ~ "arendonk-visput",
@@ -72,6 +88,22 @@ not_linked <- data %>%
   distinct(Locatie)
 
 # Resterende niet gekoppelde acties zijn minder relevant (17/11: 24 acties)
+```
+
+```{r add gebruikers}
+data <- data %>% 
+  left_join(gebruikers, by = c("E-mailadres" = "Email")) %>% 
+  mutate(Organisation = case_when(is.na(Organisation) & Invuller == "kris meeus" ~ "Natuurwerk",
+                                  is.na(Organisation) & Invuller == "Pieter Liekens" ~ "Natuurpunt",
+                                  is.na(Organisation) & Invuller == "pieter liekens" ~ "Natuurpunt",
+                                  is.na(Organisation) ~ "Unknown",
+                                  TRUE ~ Organisation))
+
+Organisation_unknown <- data %>% 
+  filter(Organisation == "Unknown") %>% 
+  select(Tijdstempel, `E-mailadres`, Invuller, Organisation)
+
+write_csv(Organisation_unknown, "./interim/Organisation_unknown.csv")
 ```
 
 ## Datacleaning
