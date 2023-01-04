@@ -201,7 +201,9 @@ afvangsten_per_fuik <- data_afvangsten %>%
          larven_corrected = larven_fuik*correctie_factor,
          totaal_fuik_corrected = totaal_fuik*correctie_factor) %>% 
   select(-`Aantal fuiken (Totaal)`) %>% 
-  arrange(Datum, Locatie, fuikNr)
+  arrange(Datum, Locatie, fuikNr) %>% 
+  mutate(max_fuikNr = case_when(is.infinite(max_fuikNr) ~ fuikNr2,
+                                TRUE ~ max_fuikNr))
 
 false_zeroes <- afvangsten_per_fuik %>% 
   filter(fuikNr2 > max_fuikNr,
@@ -211,9 +213,7 @@ afvangsten_per_fuik <- afvangsten_per_fuik %>%
   filter(fuikNr2 <= max_fuikNr) %>% 
   dplyr::select(- fuikNr2,
                 - max_fuikNr) %>% 
-  ungroup() %>% 
-  group_by(eventID) %>% 
-  mutate(no_fuiken = sum(no_fuiken, na.rm = TRUE))
+  ungroup()
 
 # Check data per fuik
 table(afvangsten_per_fuik$actie, useNA = "ifany")
