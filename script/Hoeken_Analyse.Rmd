@@ -415,20 +415,20 @@ if( effect > 0 & p_value <= 0.01 ){
 if(hypo == TRUE ){
   if( p_value <= 0.01 ){
     dyn_text <- paste0(param, " vergroot significant de vangstkans van ", stadia, " (p = ",
-                       p_value, ").")
+                       round(p_value, 2), ").")
   }
   if( p_value <= 0.001 ){
     dyn_text <- paste0(param, " vergroot zeer significant de vangstkans van ", stadia, " (p = ",
-                       p_value, ").")
+                       round(p_value, 2), ").")
   }
 }else{
   if ( effect < 0 ){
     dyn_text <- paste0(param, " verlaagd de vangstkans van ", stadia, " (p = ",
-                       p_value, ").")
+                       round(p_value, 2), ").")
   }
   if( p_value > 0.01 ){
     dyn_text <- paste0(param, " heeft geen significante invloed op de vangstkans van ", stadia, " (p = ",
-                       p_value, ").")
+                       round(p_value, 2), ").")
   }
 }
 
@@ -456,20 +456,20 @@ if( effect > 0 & p_value <= 0.01 ){
 if(hypo == TRUE ){
   if( p_value <= 0.01 ){
     dyn_text <- paste0(param, " vergroot significant de vangstkans van ", stadia, " (p = ",
-                       p_value, ").")
+                       round(p_value, 2), ").")
   }
   if( p_value <= 0.001 ){
     dyn_text <- paste0(param, " vergroot zeer significant de vangstkans van ", stadia, " (p = ",
-                       p_value, ").")
+                       round(p_value, 2), ").")
   }
 }else{
   if ( effect < 0 ){
     dyn_text <- paste0(param, " verlaagd de vangstkans van ", stadia, " (p = ",
-                       p_value, ").")
+                       round(p_value, 2), ").")
   }
   if( p_value > 0.01 ){
     dyn_text <- paste0(param, " heeft geen significante invloed op de vangstkans van ", stadia, " (p = ",
-                       p_value, ").")
+                       round(p_value, 2), ").")
   }
 }
 
@@ -495,20 +495,20 @@ if( effect > 0 & p_value <= 0.01 ){
 if(hypo == TRUE ){
   if( p_value <= 0.01 ){
     dyn_text <- paste0(param, " vergroot significant de vangstkans van ", stadia, " (p = ",
-                       p_value, ").")
+                       round(p_value, 2), ").")
   }
   if( p_value <= 0.001 ){
     dyn_text <- paste0(param, " vergroot zeer significant de vangstkans van ", stadia, " (p = ",
-                       p_value, ").")
+                       round(p_value, 2), ").")
   }
 }else{
   if ( effect < 0 ){
     dyn_text <- paste0(param, " verlaagd de vangstkans van ", stadia, " (p = ",
-                       p_value, ").")
+                       round(p_value, 2), ").")
   }
   if( p_value > 0.01 ){
     dyn_text <- paste0(param, " heeft geen significante invloed op de vangstkans van ", stadia, " (p = ",
-                       p_value, ").")
+                       round(p_value, 2), ").")
   }
 }
 
@@ -528,7 +528,7 @@ p_value <- Tukey2[[2]][1,4]
 p_value2 <- Tukey2[[2]][2,4]
 test <- "3"
 
-if( effect < 0 & effect2 <0 & p_value <= 0.01 & p_value2 <= 0.01 ){
+if( effect < 0 & effect2 < 0 & p_value <= 0.01 & p_value2 <= 0.01 ){
   hypo <- TRUE
 }else{
   hypo <- FALSE
@@ -537,22 +537,22 @@ if( effect < 0 & effect2 <0 & p_value <= 0.01 & p_value2 <= 0.01 ){
 if(hypo == TRUE ){
   if( p_value <= 0.01 ){
     dyn_text <- paste0(param, " vergroot significant de vangstkans van ", stadia, " (p = ",
-                       p_value, ").")
+                       round(p_value, 2), ").")
   }
   if( p_value <= 0.001 ){
     dyn_text <- paste0(param, " vergroot zeer significant de vangstkans van ", stadia, " (p = ",
-                       p_value, ").")
+                       round(p_value, 2), ").")
   }
 }else{
   if ( effect < 0  & effect2 > 0){
-    dyn_text <- paste0("De vangstkans van ", stadia," in parallel geplaatste fuiken is hoger dan bij fuiken die in een hoek van 45° geplaatst werden (p= ", p_value, "). Maar lager dan bij fuiken die in een hoek van 90° geplaatst werden (p= ", p_value2, ").")
+    dyn_text <- paste0("De vangstkans van ", stadia," in parallel geplaatste fuiken is hoger dan bij fuiken die in een hoek van 45° geplaatst werden (p= ", round(p_value, 2), "). Maar lager dan bij fuiken die in een hoek van 90° geplaatst werden (p= ", round(p_value2, 2), ").")
   }
   if ( effect > 0  & effect2 < 0){
-    dyn_text <- paste0("De vangstkans van ", stadia," in parallel geplaatste fuiken is hoger dan bij fuiken die in een hoek van 90° geplaatst werden (p= ", p_value, "). Maar lager dan bij fuiken die in een hoek van 45° geplaatst werden (p= ", p_value2, ").")
+    dyn_text <- paste0("De vangstkans van ", stadia," in parallel geplaatste fuiken is hoger dan bij fuiken die in een hoek van 90° geplaatst werden (p= ", round(p_value, 2), "). Maar lager dan bij fuiken die in een hoek van 45° geplaatst werden (p= ", round(p_value2, 2), ").")
   }
   if( p_value > 0.01 &   p_value2 > 0.01){
     dyn_text <- paste0(param, " heeft geen significante invloed op de vangstkans van ", stadia, " (p 45°- 00° = ",
-                       p_value," & p 90°- 00° ", p_value2, ").")
+                       round(p_value, 2)," & p 90°- 00° ", round(p_value2, 2), ").")
   }
 }
 
