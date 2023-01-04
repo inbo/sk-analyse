@@ -180,6 +180,7 @@ afvangsten_per_fuik <- data_afvangsten %>%
                           fuiktype_2)) %>% 
   select(-fuiktype_1,
          -fuiktype_2) %>%
+  ungroup() %>% 
   mutate(L00 = as.numeric(L00),
          L0 = as.numeric(L0),
          L1 = as.numeric(L1),
@@ -194,7 +195,7 @@ afvangsten_per_fuik <- data_afvangsten %>%
                                    replacement = "",
                                    fuikNr))) %>% 
   ungroup()  %>% 
-  group_by(Datum, Locatie, fuikNr, Hoek, fuiklengte, fuiktype) %>% 
+  group_by(Datum, Locatie, fuikNr, Hoek, fuiklengte, fuiktype, Tijdstempel) %>% 
   mutate(larven_fuik = sum(L0,L1,L2, na.rm = TRUE),
          totaal_fuik = sum(L00,L0,L1,L2,M1,M2,AM,AV, na.rm = TRUE),
          correctie_factor = 1,
@@ -227,6 +228,7 @@ write_csv(afvangsten_per_fuik, "./interim/afvangsten_per_fuik.csv")
 afvangsten_per_vangst <- afvangsten_per_fuik %>% 
   group_by(Datum, Locatie, locationID, eventID) %>% 
   mutate(no_fuiken = case_when(is.na(no_fuiken) ~ as.numeric(n_distinct(fuikNr)),
+                               no_fuiken == 0 ~ as.numeric(n_distinct(fuikNr)),
                                TRUE ~ no_fuiken)) %>% 
   summarise(larven_vangst = sum(larven_fuik, na.rm = TRUE),
             larven_vangst_corrected = sum(larven_corrected, na.rm = TRUE),
@@ -326,8 +328,10 @@ data_bijvangsten <- data %>%
          -Gebied, 
          -Nummer) %>% 
   mutate(eventID = paste(Datum, Locatie, sep = "_")) %>% 
-  pivot_longer(cols = contains("Fuik", ignore.case = TRUE),
-               values_to = "value") %>% 
+  left_join(events, by = c("eventID", "Wat wil je melden")) %>% 
+  pivot_longer(contains("Fuik", ignore.case = FALSE), 
+               values_to = "value",
+               values_ptypes = character()) %>% 
   separate(name, c("fuikNr", "type"), " - ",
            convert = TRUE) %>% 
   pivot_wider(names_from = type, values_from = value) %>% 
@@ -364,8 +368,16 @@ data_bijvangsten <- data %>%
                                   "fuiktype_2", 
                                   "fuiklengte"),
            convert = TRUE) %>% 
-  mutate(fuiktype = paste(fuiktype_1,
-                          fuiktype_2)) %>% 
+  ungroup() %>% 
+  mutate(fuiktype_1 = case_when(is.na(fuiktype_1) & grepl(pattern = "bodem", 
+                                                          Opmerkingen,
+                                                          ignore.case = TRUE) ~ "salamanderfuik bodem",
+                                is.na(fuiktype_1) & grepl(pattern = "drijvend", 
+                                                          Opmerkingen,
+                                                          ignore.case = TRUE) ~ "salamanderfuik drijvend",
+                                TRUE ~ fuiktype_1),
+         fuiktype = paste(fuiktype_1,
+                          fuiktype_2)) %>%  
   select(-fuiktype_1,
          -fuiktype_2) %>% 
   ungroup() %>% 
@@ -379,8 +391,14 @@ data_bijvangsten <- data %>%
          Hoek = as.character(Hoek),
          Opmerkingen = as.character(Opmerkingen),
          recordedBy = Organisation,
-         identifiedBy = Organisation) %>% 
-  dplyr::select(-Organisation)
+         identifiedBy = Organisation, 
+         fuikNr2 = as.numeric(gsub(pattern = "Fuik ",
+                                   replacement = "",
+                                   fuikNr))) %>% 
+  filter(fuikNr2 <= max_fuikNr) %>% 
+  dplyr::select(-Organisation,
+                -fuikNr2,
+                -max_fuikNr)
 
 species <- unique(data_bijvangsten$scientificname)
 
