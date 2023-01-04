@@ -37,27 +37,32 @@ hoeken_data_compiled <- hoeken_data_compiled %>%
 ```
 
 # 1. Analyse
+
 ## 1.1. Hypotheses
 
-  1. Het verhogen van het net vergroot de vangkans van Post-Metamorfen
-  2. Het plaatsen van een fuik in een hoek (45° of 90°) vergroot de vangkans van Post-Metamorfen
-  3. Het plaatsen van een fuik parallel aan de oever vergroot de vangkans van larven
+1.  Het verhogen van het net vergroot de vangkans van Post-Metamorfen
+2.  Het plaatsen van een fuik in een hoek (45° of 90°) vergroot de vangkans van Post-Metamorfen
+3.  Het plaatsen van een fuik parallel aan de oever vergroot de vangkans van larven
 
 ## 1.2. Beschrijvende statistiek
 
 ### 1.2.1. Algemene gegevens
 
 #### 1.2.1.1. Histogram
+
 ```{r Histogram, echo=FALSE}
 p <- ggplot(hoeken_data_compiled, aes(x = totaal_fuik))+
-  geom_histogram(bins = max(hoeken_data_compiled$totaal_fuik)/10)+
+  geom_histogram(bins = max(hoeken_data_compiled$totaal_fuik)/250) +
   xlab("gevangen stierkikkers")+
-  ylab("# fuiken")
+  ylab("# fuiken") +
+  scale_x_continuous(expand = c(0,0)) +
+  scale_y_continuous(expand = c(0,0))
 
 print(p)
 ```
 
 #### 1.2.1.2. Tabel
+
 ```{r tabel per stadium, include=FALSE}
 n <- nrow(hoeken_data_compiled)
 n_adult <- sum(!is.na(hoeken_data_compiled$adulten_fuik) & hoeken_data_compiled$adulten_fuik != 0)
@@ -83,27 +88,61 @@ med_metamorfen <- round(median(hoeken_data_compiled$metamorfen_fuik[hoeken_data_
 
 Fuiken met hoek en/of net verhoging info: `r n`
 
-|           |Succesvolle vangsten^1^|% fuiken |Grootste vangst   |Gemiddelde vangst |Mediane vangst |
-|-----------|:-------------------:|:----------------:|:----------------:|:-----------------:|:-----------------:|
-|   larven  |  `r n_larven`       |`r perc_larven`   | `r max_larven`    |`r mean_larven`|`r med_larven`|
-| metamorfen| `r n_metamorfen`    |`r perc_metamorf` |`r max_metamorfen`|`r mean_metamorfen`|`r med_metamorfen`|
-|    adult  |   `r n_adult`       |`r perc_adult`    |`r max_adult`     |`r mean_adult`|`r med_adult`|
+|            | Succesvolle vangsten^1^ |     \% fuiken     |  Grootste vangst   |  Gemiddelde vangst  |   Mediane vangst   |
+|------------|:----------:|:----------:|:----------:|:----------:|:----------:|
+| larven     |      `r n_larven`       |  `r perc_larven`  |   `r max_larven`   |   `r mean_larven`   |   `r med_larven`   |
+| metamorfen |    `r n_metamorfen`     | `r perc_metamorf` | `r max_metamorfen` | `r mean_metamorfen` | `r med_metamorfen` |
+| adult      |       `r n_adult`       |  `r perc_adult`   |   `r max_adult`    |   `r mean_adult`    |   `r med_adult`    |
 
-^1^ _fuik met minstens 1 gevangen exemplaar._
+^1^ *fuik met minstens 1 gevangen exemplaar.*
 
 ### 1.2.2. Net verhoogd of niet
 
+```{r acties, include=FALSE}
+acties <- hoeken_data_compiled %>% 
+  ungroup() %>% 
+  distinct(eventID, no_fuiken)
+```
+
 #### 1.2.2.1. Histogram
+
+**Alle fuiken:**
+
+In totaal werden `r nrow(hoeken_data_compiled)` fuiken geplaatst en dit gespreid over `r n_distinct(eventID)` acties tussen `r min(hoeken_data_compiled$Jaar, na.rm = TRUE)` en `r max(hoeken_data_compiled$Jaar, na.rm = TRUE)`. 
+
 ```{r Histogram_NV, echo=FALSE}
 p <- ggplot(hoeken_data_compiled, aes(x = totaal_fuik, fill = `Net verhoogd?`))+
-  geom_histogram(bins = max(hoeken_data_compiled$totaal_fuik)/10)+
-  xlab("gevangen stierkikkers")+
-  ylab("# fuiken")
+  geom_histogram(bins = max(hoeken_data_compiled$totaal_fuik)/250) +
+  xlab("gevangen stierkikkers") +
+  ylab("# fuiken") +
+  scale_x_continuous(expand = c(0,0)) + 
+  scale_y_continuous(expand = c(0,0))
+
+print(p)
+```
+
+```{r subset succesfull fykes, include=FALSE}
+succesvol <- hoeken_data_compiled %>% 
+  filter(totaal_fuik > 0)
+```
+
+**Enkel succesvolle fuiken**
+
+In `r nrow(succesvol)` van de `r nrow(hoeken_data_compiled)` (`r round((nrow(succesvol)/nrow(hoeken_data_compiled))*100, 2)`%) fuiken werd minstens 1 ( `r min(succesvol$totaal_fuik, na.rm = TRUE)` - `r max(succesvol$totaal_fuik, na.rm = TRUE)` ) stierkikker gevangen. Verder in dit rapport wordt de verhouding tussen het aantal geplaatste fuiken en het aantal succesvolle fuiken per ontwikkelingstadium, hoek en al dan niet verhoging van het tussennet uiteengesplist.
+
+```{r Histogram_NV2, echo=FALSE}
+p <- ggplot(succesvol, aes(x = totaal_fuik, fill = `Net verhoogd?`))+
+  geom_histogram(bins = max(hoeken_data_compiled$totaal_fuik)/100) +
+  xlab("gevangen stierkikkers") +
+  ylab("# fuiken") +
+  scale_x_continuous(expand = c(0,0)) + 
+  scale_y_continuous(expand = c(0,0))
 
 print(p)
 ```
 
 #### 1.2.2.2. Tabel
+
 ```{r data subsets,include=FALSE}
 #Larven
 hoeken_data_larven <- hoeken_data_compiled %>%
@@ -154,41 +193,38 @@ for(s in stadia){
 }
 ```
 
-
-
-Fuiken met net verhoging info: `r n_net` (`r percent(n_net/n, accuracy = 0.01)` van fuiken met hoek en/of net verhoging info).  
-Het net werd verhoogd bij `r n_nv` (`r percent(n_nv/n_net, accuracy = 0.01)`) van de fuiken met net verhoging info  
-en _niet_ verhoogd bij `r n_nnv` (`r percent(n_nnv/n_net, accuracy = 0.01)`) van de fuiken met net verhoging info.
+Fuiken met net verhoging info: `r n_net` (`r percent(n_net/n, accuracy = 0.01)` van fuiken met hoek en/of net verhoging info).\
+Het net werd verhoogd bij `r n_nv` (`r percent(n_nv/n_net, accuracy = 0.01)`) van de fuiken met net verhoging info\
+en *niet* verhoogd bij `r n_nnv` (`r percent(n_nnv/n_net, accuracy = 0.01)`) van de fuiken met net verhoging info.
 
 ##### 1.2.2.2.A. Larven
 
-|                 |Succesvolle vangsten^1^| % fuiken² |Grootste vangst   |Gemiddelde vangst  |Mediane vangst |
-|-----------------|:-------------------:|:----------------:|:-----------------:|:-----------------:|:-----------------:|
-|Net verhoogd     | `r nv_larven$n`     |`r nv_larven$perc`|`r nv_larven$max` |`r nv_larven$mean` |`r nv_larven$med`|
-|Net _niet_ verhoogd| `r nnv_larven$n`  |`r nnv_larven$perc`|`r nnv_larven$max`|`r nnv_larven$mean`|`r nnv_larven$med`|
+|                     | Succesvolle vangsten^1^ |     \% fuiken²      |  Grootste vangst   |  Gemiddelde vangst  |   Mediane vangst   |
+|------------|:----------:|:----------:|:----------:|:----------:|:----------:|
+| Net verhoogd        |     `r nv_larven$n`     | `r nv_larven$perc`  | `r nv_larven$max`  | `r nv_larven$mean`  | `r nv_larven$med`  |
+| Net *niet* verhoogd |    `r nnv_larven$n`     | `r nnv_larven$perc` | `r nnv_larven$max` | `r nnv_larven$mean` | `r nnv_larven$med` |
 
 ##### 1.2.2.2.B. Metamorfen
 
-|                 |Succesvolle vangsten^1^|% fuiken² |Grootste vangst   |Gemiddelde vangst  |Mediane vangst |
-|-----------------|:-------------------:|:----------------:|:-----------------:|:-----------------:|:-----------------:|
-|Net verhoogd     | `r nv_metamorfen$n`     |`r nv_metamorfen$perc`|`r nv_metamorfen$max` |`r nv_metamorfen$mean`|`r nv_metamorfen$med`|
-|Net _niet_ verhoogd| `r nnv_metamorfen$n`  |`r nnv_metamorfen$perc`|`r nnv_metamorfen$max`|`r nnv_metamorfen$mean`|`r nnv_metamorfen$med`|
+|                     | Succesvolle vangsten^1^ |       \% fuiken²        |    Grootste vangst     |    Gemiddelde vangst    |     Mediane vangst     |
+|------------|:----------:|:----------:|:----------:|:----------:|:----------:|
+| Net verhoogd        |   `r nv_metamorfen$n`   | `r nv_metamorfen$perc`  | `r nv_metamorfen$max`  | `r nv_metamorfen$mean`  | `r nv_metamorfen$med`  |
+| Net *niet* verhoogd |  `r nnv_metamorfen$n`   | `r nnv_metamorfen$perc` | `r nnv_metamorfen$max` | `r nnv_metamorfen$mean` | `r nnv_metamorfen$med` |
 
 ##### 1.2.2.2.C. Adulten
 
-|                 |Succesvolle vangsten^1^|% fuiken² |Grootste vangst   |Gemiddelde vangst  |Mediane vangst |
-|-----------------|:-------------------:|:----------------:|:-----------------:|:-----------------:|:-----------------:|
-|Net verhoogd     | `r nv_adulten$n`     |`r nv_adulten$perc`|`r nv_adulten$max` |`r nv_adulten$mean`|`r nv_adulten$med`|
-|Net _niet_ verhoogd| `r nnv_adulten$n`  |`r nnv_adulten$perc`|`r nnv_adulten$max`|`r nnv_adulten$mean`|`r nnv_adulten$med`|
+|                     | Succesvolle vangsten^1^ |      \% fuiken²      |   Grootste vangst   |  Gemiddelde vangst   |   Mediane vangst    |
+|------------|:----------:|:----------:|:----------:|:----------:|:----------:|
+| Net verhoogd        |    `r nv_adulten$n`     | `r nv_adulten$perc`  | `r nv_adulten$max`  | `r nv_adulten$mean`  | `r nv_adulten$med`  |
+| Net *niet* verhoogd |    `r nnv_adulten$n`    | `r nnv_adulten$perc` | `r nnv_adulten$max` | `r nnv_adulten$mean` | `r nnv_adulten$med` |
 
-^1^ _fuik met minstens 1 gevangen exemplaar._  
-² _aandeel succesvolle fuiken ten opzichte van het aantal fuiken dat volgens de beschreven manier geplaatst werd._
-
-
+^1^ *fuik met minstens 1 gevangen exemplaar.*\
+² *aandeel succesvolle fuiken ten opzichte van het aantal fuiken dat volgens de beschreven manier geplaatst werd.*
 
 ### 1.2.3. Hoeken
 
 #### 1.2.3.1. Histogram
+
 ```{r Histogram_Hoek, echo=FALSE}
 p <- ggplot(hoeken_data_compiled, aes(x = totaal_fuik, fill = Hoek))+
   geom_histogram(bins = max(hoeken_data_compiled$totaal_fuik)/10)+
@@ -199,6 +235,7 @@ print(p)
 ```
 
 #### 1.2.3.2. Tabel
+
 ```{r tabel per hoek, include=FALSE}
 stadia <- c("larven_fuik", "metamorfen_fuik", "adulten_fuik")
 
@@ -245,39 +282,40 @@ for(s in stadia){
 }
 ```
 
-Fuiken met hoek info: `r n_hoek` (`r percent(n_hoek/n, accuracy = 0.01)` van fuiken met hoek en/of net verhoging info).  
-`r n_par` (`r percent(n_par/n_hoek, accuracy = 0.01)`) van de fuiken met hoek info werd parallel met de oever geplaatst,  
-`r n_mid` (`r percent(n_mid/n_hoek, accuracy = 0.01)`) van de fuiken werd onder een hoek van 45° geplaatst en  
+Fuiken met hoek info: `r n_hoek` (`r percent(n_hoek/n, accuracy = 0.01)` van fuiken met hoek en/of net verhoging info).\
+`r n_par` (`r percent(n_par/n_hoek, accuracy = 0.01)`) van de fuiken met hoek info werd parallel met de oever geplaatst,\
+`r n_mid` (`r percent(n_mid/n_hoek, accuracy = 0.01)`) van de fuiken werd onder een hoek van 45° geplaatst en\
 `r n_lood` (`r percent(n_lood/n_hoek, accuracy = 0.01)`) van de fuiken werd loodrecht op de oever geplaatst.
 
 #### 1.2.3.2.A. Larven
 
-|                 |Succesvolle vangsten^1^|  % fuiken² |Grootste vangst   |Gemiddelde vangst  |Mediane vangst |
-|-----------------|:-------------------:|:----------------:|:-----------------:|:-----------------:|:-----------------:|
-|00°              |   `r par_larven$n`  |`r par_larven$perc`|`r par_larven$max`    |`r par_larven$mean`|`r par_larven$med`|
-|45°              | `r mid_larven$n`    |`r mid_larven$perc`  |`r mid_larven$max`|`r mid_larven$mean`  |`r mid_larven$med`|
-|90°              | `r lood_larven$n`   |`r lood_larven$perc`   |`r lood_larven$max`|`r lood_larven$mean`|`r lood_larven$med`|
+|     | Succesvolle vangsten^1^ |      \% fuiken²      |   Grootste vangst   |  Gemiddelde vangst   |   Mediane vangst    |
+|------------|:----------:|:----------:|:----------:|:----------:|:----------:|
+| 00° |    `r par_larven$n`     | `r par_larven$perc`  | `r par_larven$max`  | `r par_larven$mean`  | `r par_larven$med`  |
+| 45° |    `r mid_larven$n`     | `r mid_larven$perc`  | `r mid_larven$max`  | `r mid_larven$mean`  | `r mid_larven$med`  |
+| 90° |    `r lood_larven$n`    | `r lood_larven$perc` | `r lood_larven$max` | `r lood_larven$mean` | `r lood_larven$med` |
 
 #### 1.2.3.2.B. Metamorfen
 
-|                 |Succesvolle vangsten^1^|  % fuiken² |Grootste vangst   |Gemiddelde vangst  |Mediane vangst |
-|-----------------|:-------------------:|:----------------:|:-----------------:|:-----------------:|:-----------------:|
-|00°              |`r par_metamorfen$n`|`r par_metamorfen$perc`|`r par_metamorfen$max`|`r par_metamorfen$mean`|`r par_metamorfen$med`|
-|45°              |`r mid_metamorfen$n`|`r mid_metamorfen$perc`|`r mid_metamorfen$max`|`r mid_metamorfen$mean`|`r mid_metamorfen$med`|
-|90°              |`r lood_metamorfen$n`|`r lood_metamorfen$perc`|`r lood_metamorfen$max`|`r lood_metamorfen$mean`|`r lood_metamorfen$med`|
+|     | Succesvolle vangsten^1^ |        \% fuiken²        |     Grootste vangst     |    Gemiddelde vangst     |     Mediane vangst      |
+|------------|:----------:|:----------:|:----------:|:----------:|:----------:|
+| 00° |  `r par_metamorfen$n`   | `r par_metamorfen$perc`  | `r par_metamorfen$max`  | `r par_metamorfen$mean`  | `r par_metamorfen$med`  |
+| 45° |  `r mid_metamorfen$n`   | `r mid_metamorfen$perc`  | `r mid_metamorfen$max`  | `r mid_metamorfen$mean`  | `r mid_metamorfen$med`  |
+| 90° |  `r lood_metamorfen$n`  | `r lood_metamorfen$perc` | `r lood_metamorfen$max` | `r lood_metamorfen$mean` | `r lood_metamorfen$med` |
 
 #### 1.2.3.2.C. Adulten
 
-|                 |Succesvolle vangsten^1^|  % fuiken² |Grootste vangst   |Gemiddelde vangst  |Mediane vangst |
-|-----------------|:-------------------:|:----------------:|:-----------------:|:-----------------:|:-----------------:|
-|00°              |`r par_adulten$n`|`r par_adulten$perc`|`r par_adulten$max`|`r par_adulten$mean`|`r par_adulten$med`|
-|45°              |`r mid_adulten$n`|`r mid_adulten$perc`|`r mid_adulten$max`|`r mid_adulten$mean`|`r mid_adulten$med`|
-|90°              |`r lood_adulten$n`|`r lood_adulten$perc`|`r lood_adulten$max`|`r lood_adulten$mean`|`r lood_adulten$med`|
+|     | Succesvolle vangsten^1^ |      \% fuiken²       |   Grootste vangst    |   Gemiddelde vangst   |    Mediane vangst    |
+|------------|:----------:|:----------:|:----------:|:----------:|:----------:|
+| 00° |    `r par_adulten$n`    | `r par_adulten$perc`  | `r par_adulten$max`  | `r par_adulten$mean`  | `r par_adulten$med`  |
+| 45° |    `r mid_adulten$n`    | `r mid_adulten$perc`  | `r mid_adulten$max`  | `r mid_adulten$mean`  | `r mid_adulten$med`  |
+| 90° |   `r lood_adulten$n`    | `r lood_adulten$perc` | `r lood_adulten$max` | `r lood_adulten$mean` | `r lood_adulten$med` |
 
-^1^ _fuik met minstens 1 gevangen exemplaar._  
-² _aandeel succesvolle fuiken ten opzichte van het aantal fuiken dat volgens de beschreven manier geplaatst werd._
+^1^ *fuik met minstens 1 gevangen exemplaar.*\
+² *aandeel succesvolle fuiken ten opzichte van het aantal fuiken dat volgens de beschreven manier geplaatst werd.*
 
 ### 1.2.4. Facet Boxplot
+
 ```{r Boxplot, echo=FALSE, fig.width=8}
 hoeken_data_compiled_2 <- hoeken_data_compiled %>%
   pivot_longer(cols = c(L00,L0, L1, L2, M1, M2, AM, AV), names_to = "stadium", values_to = "n")
@@ -292,90 +330,110 @@ print(p)
 ```
 
 ## 1.3. Anova
+
 ### 1.3.1. Net verhogen en hoek hebben een invloed op de vangstkans van **post-metamorfen**
 
 Model:
+
 ```{r vangstkans post-metamorfen - Model}
 model1 <- lm(hoeken_data_compiled$post_metamorf ~ as.factor(hoeken_data_compiled$`Net verhoogd?`) + as.factor(hoeken_data_compiled$Hoek))
 ```
 
 ANOVA:
+
 ```{r vangstkans post-metamorfen - ANOVA, echo=FALSE}
 anova1 <- aov(model1)
 summary(anova1)
 ```
 
 Tukey post-hoc:
+
 ```{r vangstkans post-metamorfen - Tukey, echo=FALSE}
 Tukey1 <- TukeyHSD(anova1)
 Tukey1
 ```
 
 ### 1.3.2. Net verhogen en hoek hebben een invloed op de vangstkans van **adulten**
+
 Model:
+
 ```{r vangstkans adulten - Model}
 model2 <- lm(hoeken_data_compiled$adulten_fuik ~ as.factor(hoeken_data_compiled$`Net verhoogd?`) + as.factor(hoeken_data_compiled$Hoek))
 ```
 
 ANOVA:
+
 ```{r vangstkans adulten - ANOVA, echo=FALSE}
 anova2 <- aov(model2)
 summary(anova2)
 ```
 
 Tukey post-hoc:
+
 ```{r vangstkans adulten - Tukey, echo=FALSE}
 TukeyHSD(anova2)
 ```
 
 ### 1.3.3. Net verhogen en hoek hebben een invloed op de vangstkans van **metamorfen**
+
 Model:
+
 ```{r vangstkans metamorfen - Model}
 model3 <- lm(hoeken_data_compiled$metamorfen_fuik ~ as.factor(hoeken_data_compiled$`Net verhoogd?`) + as.factor(hoeken_data_compiled$Hoek))
 ```
 
 ANOVA:
+
 ```{r vangstkans metamorfen - ANOVA, echo=FALSE}
 anova3 <- aov(model3)
 summary(anova3)
 ```
 
 Tukey post-hoc:
+
 ```{r vangstkans metamorfen - Tukey, echo=FALSE}
 TukeyHSD(anova3)
 ```
 
 ### 1.3.4. Net verhogen en hoek hebben een invloed op de vangstkans van **larven**
+
 Model:
+
 ```{r vangstkans larven - Model}
 model4 <- lm(hoeken_data_compiled$larven_fuik ~ as.factor(hoeken_data_compiled$`Net verhoogd?`) + as.factor(hoeken_data_compiled$Hoek))
 ```
 
 ANOVA:
+
 ```{r vangstkans larven - ANOVA, echo=FALSE}
 anova4 <- aov(model4)
 summary(anova4)
 ```
 
 Tukey post-hoc:
+
 ```{r vangstkans larven - Tukey, echo=FALSE}
 Tukey2 <- TukeyHSD(anova4)
 Tukey2
 ```
 
 ### 1.3.5. Net verhogen en hoek hebben een invloed op de **algemene** vangstkans
+
 Model:
+
 ```{r vangstkans algemeen - Model}
 model5 <- lm(hoeken_data_compiled$totaal_fuik ~ as.factor(hoeken_data_compiled$`Net verhoogd?`) + as.factor(hoeken_data_compiled$Hoek))
 ```
 
 ANOVA:
+
 ```{r vangstkans algemeen - ANOVA, echo=FALSE}
 anova5 <- aov(model5)
 summary(anova5)
 ```
 
 Tukey post-hoc:
+
 ```{r vangstkans algemeen - Tukey, echo=FALSE}
 TukeyHSD(anova5)
 ```
@@ -384,7 +442,7 @@ TukeyHSD(anova5)
 
 Voor **post-metamorfen** (metamorfen en adulten) detecteren we geen significante impact van de hoek en de net-verhoging. Als we de post-metamorfen opsplitsen blijkt dat er duidelijke verschillen zijn voor adulten en metamorfen.
 
-Voor **adulten** is er een duidelijke significante voorkeur voor een verhoogd net (p = 0) alsook een fuik in een hoek van 45° (p = 0). Een fuik in een hoek van 90° geeft de slechtste resultaten (45°>00°>90°).
+Voor **adulten** is er een duidelijke significante voorkeur voor een verhoogd net (p = 0) alsook een fuik in een hoek van 45° (p = 0). Een fuik in een hoek van 90° geeft de slechtste resultaten (45°\>00°\>90°).
 
 Voor **metamorfen** detecteren we geen significante impact van de hoek en de net-verhoging.
 
@@ -393,12 +451,14 @@ Het vangstsucces van de **larven** is voornamelijk beinvloed door de hoek van de
 De **algemene conclusie** is dat het plaatsen van fuiken, ongeacht het doel-stadium, best gebeurd in een hoek van 45° met een verhoogd net. Als alternatief kunnen de fuiken parallel geplaatst worden. Het plaatsen van fuiken loodrecht op de oever heeft potentieel een negatief effect op het vangstsucces. Dit is het meest uitgesproken bij de larven en de adulten. Wel dient er enige voorzichtigheid m.b.t. het lage aantal vangsten met een hoek van 90° (n = `r n_lood`) aan de man gebracht worden.
 
 ## 1.4. Verdict Hypotheses:
+
 Notes:
 
-- chunck per Hypothese met TRUE FALSE uitkomst 
-- dynamische tekst obv uitkomst
+-   chunck per Hypothese met TRUE FALSE uitkomst
+-   dynamische tekst obv uitkomst
 
 ### 1.4.1. Het verhogen van het net vergroot de vangkans van Post-Metamorfen
+
 ```{r test hypothese 1, echo=FALSE}
 param <- "Het verhogen van het net"
 stadia <- "post-metamorfen"
@@ -438,6 +498,7 @@ assign(paste0("dyn_text_", test), dyn_text)
 Verdict: `r dyn_text_1`
 
 ### 1.4.2. Het plaatsen van een fuik in een hoek vergroot de vangstkans van Post-Metamorfen
+
 #### 1.4.2.a Het plaatsen van een fuik 45° ten opzichte van de oever vergroot de vangstkans van Post-Metamorfen
 
 ```{r test hypothese 2a, echo=FALSE}
@@ -474,11 +535,12 @@ if(hypo == TRUE ){
 }
 
 assign(paste0("dyn_text_", test), dyn_text)
-``` 
+```
 
 Verdict: `r dyn_text_2a`
 
 #### 1.4.2.b Het plaatsen van een fuik 90° (loodrecht) ten opzichte van de oever vergroot de vangstkans van Post-Metamorfen
+
 ```{r test hypothese 2b, echo=FALSE}
 param <- "Het plaatsen van een fuik in een hoek van 90°"
 stadia <- "post-metamorfen"
@@ -513,7 +575,7 @@ if(hypo == TRUE ){
 }
 
 assign(paste0("dyn_text_", test), dyn_text)
-``` 
+```
 
 Verdict: `r dyn_text_2b`
 
@@ -557,7 +619,6 @@ if(hypo == TRUE ){
 }
 
 assign(paste0("dyn_text_", test), dyn_text)
-``` 
+```
 
 Verdict: `r dyn_text_3`
-
