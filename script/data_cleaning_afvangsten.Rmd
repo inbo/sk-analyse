@@ -407,7 +407,9 @@ y_not_x <- setdiff(y, x)
 
 #max(str_count(data_bijvangsten$species, ";"), na.rm = TRUE)
 
-table(afvangsten_vr_gbif$Organisation, useNA = "ifany")
+table(afvangsten_vr_gbif$recordedBy,
+      afvangsten_vr_gbif$identifiedBy,
+      useNA = "ifany")
 ```
 
 ```{r datacleaning - export dfs vr gbif}
