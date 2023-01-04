@@ -260,8 +260,11 @@ afvangsten_vr_gbif <- afvangsten_per_fuik %>%
   group_by(occurrenceID) %>% 
   mutate(occurrenceID = UUIDgenerate()) %>% 
   mutate(scientificname = "Lithobates catesbeianus",
-         taxonkey = 2427091) %>% 
-  filter(!is.na(individualCount))
+         taxonkey = 2427091,
+         recordedBy = Organisation,
+         identifiedBy = Organisation) %>% 
+  filter(!is.na(individualCount)) %>% 
+  dplyr::select(-Organisation)
 
 events <- afvangsten_vr_gbif %>% 
   ungroup() %>% 
@@ -361,7 +364,10 @@ data_bijvangsten <- data %>%
   mutate(Datum = as.Date(Datum, format = "%d-%m-%Y"),
          Tijdstempel = parse_datetime(Tijdstempel, format = "%d-%m-%Y %H:%M:%S"),
          Hoek = as.character(Hoek),
-         Opmerkingen = as.character(Opmerkingen)) 
+         Opmerkingen = as.character(Opmerkingen),
+         recordedBy = Organisation,
+         identifiedBy = Organisation) %>% 
+  dplyr::select(-Organisation)
 
 species <- unique(data_bijvangsten$scientificname)
 
