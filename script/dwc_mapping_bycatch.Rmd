@@ -138,7 +138,7 @@ occurrence %<>% mutate(dwc_occurrenceID = occurrence_id)
 ### recordedBy
 
 ```{r}
-occurrence %<>% mutate(dwc_recordedBy = 'INBO team FIS')
+occurrence %<>% mutate(dwc_recordedBy = recorded_by)
 ```
 
 ### individualCount
@@ -282,7 +282,7 @@ occurrence %<>% mutate(dwc_coordinateUncertaintyInMeters = "30")
 
 
 ```{r}
-occurrence %<>% mutate(dwc_identifiedBy = 'INBO FIS')
+occurrence %<>% mutate(dwc_identifiedBy = identified_by)
 ```
 
 ```{r}
