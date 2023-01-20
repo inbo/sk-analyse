@@ -29,4 +29,4 @@ vignettes/*.pdf
 .secrets
 
 # data publication ignored files
-~/Github/sk-analyse/darwincore/processed/*.csv
+Github/sk-analyse/darwincore/processed/*.csv
