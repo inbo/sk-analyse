@@ -27,3 +27,6 @@ vignettes/*.pdf
 # R Environment Variables
 .Renviron
 .secrets
+
+# data publication ignored files
+~/Github/sk-analyse/darwincore/processed/*.csv

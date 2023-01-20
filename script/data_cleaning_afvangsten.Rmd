@@ -53,9 +53,9 @@ bijvangst <- read_sheet(Sys.getenv("BYCATCH"),
                         sheet = "Blad1",
                         col_types = "c")
 
-gebruikers <- read_sheet("1_cBgfSjnxakLAQ9uGunDt_-Mk4L0uDx2-qv6cKCzkSk",
-                        sheet = "Gebruikers",
-                        col_types = "c") %>% 
+uitvoerders <- read_sheet("1_cBgfSjnxakLAQ9uGunDt_-Mk4L0uDx2-qv6cKCzkSk",
+                          sheet = "Gebruikers",
+                          col_types = "c") %>% 
   select(-Invuller)
 ```
 
@@ -90,9 +90,9 @@ not_linked <- data %>%
 # Resterende niet gekoppelde acties zijn minder relevant (17/11: 24 acties)
 ```
 
-```{r add gebruikers}
+```{r add uitvoerders}
 data <- data %>% 
-  left_join(gebruikers, by = c("E-mailadres" = "Email")) %>% 
+  left_join(uitvoerders, by = c("E-mailadres" = "Email")) %>% 
   mutate(Organisation = case_when(is.na(Organisation) & Invuller == "kris meeus" ~ "Natuurwerk",
                                   is.na(Organisation) & Invuller == "Pieter Liekens" ~ "Natuurpunt",
                                   is.na(Organisation) & Invuller == "pieter liekens" ~ "Natuurpunt",
@@ -100,7 +100,7 @@ data <- data %>%
                                   TRUE ~ Organisation))
 
 Organisation_unknown <- data %>% 
-  filter(Organisation == "Unknown") %>% 
+  filter(Organisation %in% c("Unknown", "NA")) %>% 
   select(Tijdstempel, `E-mailadres`, Invuller, Organisation)
 
 write_csv(Organisation_unknown, "./interim/Organisation_unknown.csv")
@@ -142,13 +142,22 @@ data_afvangsten <- data %>%
   mutate(eventID = paste(Datum, Locatie, sep = "_"))
 ```
 
+```{r datacleaning - eventstats}
+events <- data_afvangsten %>% 
+  group_by(eventID, `Wat wil je melden`) %>% 
+  summarise(max_fuikNr = max(as.numeric(`Aantal fuiken (Totaal)`), na.rm = TRUE),
+            no_fuiken = sum(as.numeric(`Aantal fuiken (Totaal)`), na.rm = TRUE))
+```
+
 ```{r datacleaning - afvangsten per fuik}
-afvangsten_per_fuik <- data_afvangsten %>% 
+afvangsten_per_fuik <- data_afvangsten %>%  
+  left_join(events, by = c("eventID", "Wat wil je melden")) %>% 
   filter(!is.na(Tijdstempel)) %>% 
   group_by(Datum, Locatie) %>% 
   pivot_longer(contains("Fuik", ignore.case = FALSE), 
                values_to = "value",
                values_ptypes = character()) %>% 
+  filter(!is.na(value)) %>% 
   mutate(value = case_when(value == "-1" ~ as.character("NA"),
                            TRUE ~ value)) %>% 
   separate(name, c("fuikNr", "type"), " - ",
@@ -159,10 +168,19 @@ afvangsten_per_fuik <- data_afvangsten %>%
                                   "fuiktype_2", 
                                   "fuiklengte"),
            convert = TRUE) %>% 
-  mutate(fuiktype = paste(fuiktype_1,
+  ungroup() %>% 
+  mutate(fuiktype_1 = case_when(is.na(fuiktype_1) & grepl(pattern = "bodem", 
+                                                          Opmerkingen,
+                                                          ignore.case = TRUE) ~ "salamanderfuik bodem",
+                                is.na(fuiktype_1) & grepl(pattern = "drijvend", 
+                                                          Opmerkingen,
+                                                          ignore.case = TRUE) ~ "salamanderfuik drijvend",
+                                TRUE ~ fuiktype_1),
+         fuiktype = paste(fuiktype_1,
                           fuiktype_2)) %>% 
   select(-fuiktype_1,
          -fuiktype_2) %>%
+  ungroup() %>% 
   mutate(L00 = as.numeric(L00),
          L0 = as.numeric(L0),
          L1 = as.numeric(L1),
@@ -171,18 +189,32 @@ afvangsten_per_fuik <- data_afvangsten %>%
          M2 = as.numeric(M2),
          AM = as.numeric(AM),
          AV = as.numeric(AV),
-         no_fuiken = as.numeric(`Aantal fuiken (Totaal)`),
          Datum = as.Date(Datum, format = "%d-%m-%Y"),
-         Tijdstempel = parse_datetime(Tijdstempel, format = "%d-%m-%Y %H:%M:%S")) %>% 
-  ungroup() %>% 
-  group_by(Datum, Locatie, fuikNr) %>% 
+         Tijdstempel = parse_datetime(Tijdstempel, format = "%d-%m-%Y %H:%M:%S"),
+         fuikNr2 = as.numeric(gsub(pattern = "Fuik ",
+                                   replacement = "",
+                                   fuikNr))) %>% 
+  ungroup()  %>% 
+  group_by(Datum, Locatie, fuikNr, Hoek, fuiklengte, fuiktype, Tijdstempel) %>% 
   mutate(larven_fuik = sum(L0,L1,L2, na.rm = TRUE),
          totaal_fuik = sum(L00,L0,L1,L2,M1,M2,AM,AV, na.rm = TRUE),
          correctie_factor = 1,
          larven_corrected = larven_fuik*correctie_factor,
          totaal_fuik_corrected = totaal_fuik*correctie_factor) %>% 
   select(-`Aantal fuiken (Totaal)`) %>% 
-  arrange(Datum, Locatie, fuikNr)
+  arrange(Datum, Locatie, fuikNr) %>% 
+  mutate(max_fuikNr = case_when(is.infinite(max_fuikNr) ~ fuikNr2,
+                                TRUE ~ max_fuikNr))
+
+false_zeroes <- afvangsten_per_fuik %>% 
+  filter(fuikNr2 > max_fuikNr,
+         totaal_fuik > 0)
+
+afvangsten_per_fuik <- afvangsten_per_fuik %>% 
+  filter(fuikNr2 <= max_fuikNr) %>% 
+  dplyr::select(- fuikNr2,
+                - max_fuikNr) %>% 
+  ungroup()
 
 # Check data per fuik
 table(afvangsten_per_fuik$actie, useNA = "ifany")
@@ -192,11 +224,11 @@ table(afvangsten_per_fuik$fuiktype, useNA = "ifany") #NA's zijn meestal dubbele 
 write_csv(afvangsten_per_fuik, "./interim/afvangsten_per_fuik.csv")
 ```
 
-
 ```{r datacleaning - afvangsten per vangstdag}
 afvangsten_per_vangst <- afvangsten_per_fuik %>% 
   group_by(Datum, Locatie, locationID, eventID) %>% 
   mutate(no_fuiken = case_when(is.na(no_fuiken) ~ as.numeric(n_distinct(fuikNr)),
+                               no_fuiken == 0 ~ as.numeric(n_distinct(fuikNr)),
                                TRUE ~ no_fuiken)) %>% 
   summarise(larven_vangst = sum(larven_fuik, na.rm = TRUE),
             larven_vangst_corrected = sum(larven_corrected, na.rm = TRUE),
@@ -206,11 +238,14 @@ afvangsten_per_vangst <- afvangsten_per_fuik %>%
             cpue_larven = larven_vangst/no_fuiken,
             cpue_larven_corrected = larven_vangst_corrected/no_fuiken,
             cpue_totaal = totaal_vangst/no_fuiken,
-            cpue_totaal_corrected = totaal_vangst_corrected/no_fuiken)%>% 
+            cpue_totaal_corrected = totaal_vangst_corrected/no_fuiken,
+            Organisation = paste(unique(Organisation), collapse = " & ")) %>% 
   arrange(Datum, Locatie, locationID, eventID)
 
 # Controle
 n_distinct(afvangsten_per_fuik$Datum, afvangsten_per_fuik$Locatie) == nrow(afvangsten_per_vangst) #Moet TRUE zijn
+
+table(afvangsten_per_vangst$Organisation, useNA = "ifany")
 
 # Export
 write_csv(afvangsten_per_vangst, "./interim/afvangsten_per_vangst.csv")
@@ -241,10 +276,13 @@ afvangsten_vr_gbif <- afvangsten_per_fuik %>%
   group_by(occurrenceID) %>% 
   mutate(occurrenceID = UUIDgenerate()) %>% 
   mutate(scientificname = "Lithobates catesbeianus",
-         taxonkey = 2427091) %>% 
-  filter(!is.na(individualCount))
+         taxonkey = 2427091,
+         recordedBy = Organisation,
+         identifiedBy = Organisation) %>% 
+  filter(!is.na(individualCount)) %>% 
+  dplyr::select(-Organisation)
 
-events <- afvangsten_vr_gbif %>% 
+events2 <- afvangsten_vr_gbif %>% 
   ungroup() %>% 
   distinct(Datum,
            Jaar,
@@ -255,9 +293,8 @@ events <- afvangsten_vr_gbif %>%
            locationID,
            eventID) 
 
-
 n_distinct(afvangsten_vr_gbif$occurrenceID) == nrow(afvangsten_vr_gbif)
-n_distinct(afvangsten_vr_gbif$eventID) == nrow(events)
+n_distinct(afvangsten_vr_gbif$eventID) == nrow(events2)
 ```
 
 ```{r datacleaning - bijvangsten vr gbif}
@@ -291,8 +328,10 @@ data_bijvangsten <- data %>%
          -Gebied, 
          -Nummer) %>% 
   mutate(eventID = paste(Datum, Locatie, sep = "_")) %>% 
-  pivot_longer(cols = contains("Fuik", ignore.case = TRUE),
-               values_to = "value") %>% 
+  left_join(events, by = c("eventID", "Wat wil je melden")) %>% 
+  pivot_longer(contains("Fuik", ignore.case = FALSE), 
+               values_to = "value",
+               values_ptypes = character()) %>% 
   separate(name, c("fuikNr", "type"), " - ",
            convert = TRUE) %>% 
   pivot_wider(names_from = type, values_from = value) %>% 
@@ -329,8 +368,16 @@ data_bijvangsten <- data %>%
                                   "fuiktype_2", 
                                   "fuiklengte"),
            convert = TRUE) %>% 
-  mutate(fuiktype = paste(fuiktype_1,
-                          fuiktype_2)) %>% 
+  ungroup() %>% 
+  mutate(fuiktype_1 = case_when(is.na(fuiktype_1) & grepl(pattern = "bodem", 
+                                                          Opmerkingen,
+                                                          ignore.case = TRUE) ~ "salamanderfuik bodem",
+                                is.na(fuiktype_1) & grepl(pattern = "drijvend", 
+                                                          Opmerkingen,
+                                                          ignore.case = TRUE) ~ "salamanderfuik drijvend",
+                                TRUE ~ fuiktype_1),
+         fuiktype = paste(fuiktype_1,
+                          fuiktype_2)) %>%  
   select(-fuiktype_1,
          -fuiktype_2) %>% 
   ungroup() %>% 
@@ -342,7 +389,16 @@ data_bijvangsten <- data %>%
   mutate(Datum = as.Date(Datum, format = "%d-%m-%Y"),
          Tijdstempel = parse_datetime(Tijdstempel, format = "%d-%m-%Y %H:%M:%S"),
          Hoek = as.character(Hoek),
-         Opmerkingen = as.character(Opmerkingen)) 
+         Opmerkingen = as.character(Opmerkingen),
+         recordedBy = Organisation,
+         identifiedBy = Organisation, 
+         fuikNr2 = as.numeric(gsub(pattern = "Fuik ",
+                                   replacement = "",
+                                   fuikNr))) %>% 
+  filter(fuikNr2 <= max_fuikNr) %>% 
+  dplyr::select(-Organisation,
+                -fuikNr2,
+                -max_fuikNr)
 
 species <- unique(data_bijvangsten$scientificname)
 
@@ -381,9 +437,13 @@ x_not_y <- setdiff(x, y)
 y_not_x <- setdiff(y, x)
 
 #max(str_count(data_bijvangsten$species, ";"), na.rm = TRUE)
+
+table(afvangsten_vr_gbif$recordedBy,
+      afvangsten_vr_gbif$identifiedBy,
+      useNA = "ifany")
 ```
 
-```{r datacleaning - recombine dfs vr gbif}
+```{r datacleaning - export dfs vr gbif}
 write_csv(afvangsten_vr_gbif, "./output/gbif_stierkikker_vangsten.csv")
 write_csv(data_bijvangsten, "./output/gbif_stierkikker_bijvangsten.csv")
 ```
