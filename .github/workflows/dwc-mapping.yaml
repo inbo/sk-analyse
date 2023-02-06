@@ -1,0 +1,107 @@
+on:
+  push: 
+   branches:
+     - main
+     - '18-automate-dwc-mapping'
+   paths:
+     - ouput/**
+    
+name: dwc-mapping
+
+jobs:
+  fetch-data:
+    runs-on: ${{ matrix.config.os }}
+
+    name: ${{ matrix.config.os }} (${{ matrix.config.r }})
+
+    strategy:
+      fail-fast: false
+      matrix:
+        config:
+          - {os: ubuntu-latest,   r: 'release'}
+    env:
+      R_REMOTES_NO_ERRORS_FROM_WARNINGS: true
+      RSPM: ${{ matrix.config.rspm }}
+      GITHUB_TOKEN: ${{ secrets.AUTOMATISATION }}
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v3
+        with:
+          fetch-depth: 0
+          token: ${{ secrets.AUTOMATISATION }}
+
+      - name: Setup R
+        uses: r-lib/actions/setup-r@v2
+        with:
+          r-version: ${{ matrix.config.r }}
+          http-user-agent: ${{ matrix.config.http-user-agent }}
+
+      - name: Setup pandoc
+        uses: r-lib/actions/setup-pandoc@v2
+
+      - name: Install linux libraries
+        run: |
+          sudo apt install libsodium-dev
+          sudo apt-get install libcurl4-openssl-dev
+          sudo apt-get install libgdal-dev libproj-dev
+          sudo apt install libudunits2-dev
+
+      - name: Install R packages
+        run: |
+          source("script/install_packages_dwc.R")
+        shell: Rscript {0}
+        
+      - name: DWC mapping
+        run: |
+          source("script/run_dwc_mapping.R")
+        shell: Rscript {0}
+
+      - name: Commit and push changes
+        uses: devops-infra/action-commit-push@master
+        with:
+          github_token: ${{ secrets.AUTOMATISATION }}
+          commit_prefix: "[AUTO]"
+          commit_message: "dwc mapping"
+          target_branch: automatic-dwc-mapping
+          
+      - name: DWC mapping bycatch
+        run: |
+          source("script/run_dwc_mapping_bycatch.R")
+        shell: Rscript {0}
+
+      - name: Commit and push changes
+        uses: devops-infra/action-commit-push@master
+        with:
+          github_token: ${{ secrets.AUTOMATISATION }}
+          commit_prefix: "[AUTO]"
+          commit_message: "dwc mapping bycatch"
+          target_branch: automatic-dwc-mapping
+          
+      - name: DWC join bycatch with catch
+        run: |
+          source("script/run_dwc_joinbycatch_catch.R")
+        shell: Rscript {0}
+
+      - name: Commit and push changes
+        uses: devops-infra/action-commit-push@master
+        with:
+          github_token: ${{ secrets.AUTOMATISATION }}
+          commit_prefix: "[AUTO]"
+          commit_message: "dwc join bycatch with catch"
+          target_branch: automatic-dwc-mapping
+
+      - name: Get branch name
+        run: |
+          git branch --show-current
+
+      - name: Create pull request
+        uses: devops-infra/action-pull-request@v0.4.2
+        with:
+          github_token: ${{ secrets.AUTOMATISATION }}
+          target_branch: main
+          title: "[AUTO] dwc mapping"
+          template: .github/PR_dwc_mapping.md
+          reviewer: SanderDevisscher
+          label: automated workflow
+          get_diff: false
