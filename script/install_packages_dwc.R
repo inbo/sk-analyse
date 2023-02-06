@@ -1,7 +1,7 @@
 # get packages installed on machine
 installed <- rownames(installed.packages())
 # specify packages we need
-required <- c("here", "tidyverse","httr", "magrittr", "janitor", "readxl"
+required <- c("here", "tidyverse","httr", "magrittr", "janitor", "readxl", 
               "tidylog", "rgbif", "uuid", 
               "testthat" # to run tests in test_dwc_occurrence.R
 )
