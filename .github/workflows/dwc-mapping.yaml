@@ -2,9 +2,7 @@ on:
   push: 
    branches:
      - '18-automate-dwc-mapping'
-   paths:
-     - ouput/**
-    
+  
 name: dwc-mapping
 
 jobs:
