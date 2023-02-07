@@ -2,6 +2,7 @@ on:
   push: 
    branches:
      - '18-automate-dwc-mapping'
+     - 'main'
   
 name: dwc-mapping
 
