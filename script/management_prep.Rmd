@@ -30,7 +30,8 @@ gbif_download <- occ_download_get(gbif_downloadKey,
                                   path = tempdir(), 
                                   overwrite = TRUE)
 
-cleanData <- occ_download_import(x = gbif_download) 
+cleanData <- occ_download_import(x = gbif_download) %>% 
+  mutate(gbifID = as.double(gbifID))
 ```
 
 ```{r get verbatim data, include=FALSE}
@@ -99,10 +100,22 @@ localities_until_2018 <- verbatimData_until_2018 %>%
 ```{r mapping post 2018, include=FALSE}
 verbatimData_post_2018 <- verbatimData %>% 
   filter(datasetName == "Invasive species - American bullfrog (Lithobates catesbeianus) in Flanders, Belgium (post 2018)") %>% 
-  select(gbifID, lifeStage, verbatimLocality)
+  select(gbifID, lifeStage, verbatimLocality, individualCount)
 
-table(verbatimData_post_2018$lifeStage, useNA = "ifany")
+lifeStages_post_2018 <- verbatimData_post_2018 %>% 
+  select(gbifID, lifeStage, n = individualCount) %>% 
+  mutate(lifeStage = case_when(grepl("larvae", lifeStage) ~ "larvae",
+                               grepl("metamorph", lifeStage) ~ "juvenile",
+                               grepl("adult", lifeStage) ~ "adult",
+                               TRUE ~ lifeStage))
+
+localities_post_2018 <- verbatimData_post_2018 %>% 
+  select(gbifID, verbatimLocality)
+
+table(verbatimData_post_2018$lifeStage,lifeStages_post_2018$lifeStage, useNA = "ifany")
 table(verbatimData_post_2018$verbatimLocality, useNA = "ifany")
+
+summary(lifeStages_post_2018$n)
 ```
 
 ```{r combine until/post 2018, include=FALSE}
@@ -139,6 +152,7 @@ cleanData <- cleanData %>%
          !grepl("13372", verbatimLocality),
          !grepl("13373", verbatimLocality),
          !is.na(lifeStage))
+  
 
 table(cleanData$verbatimLocality, cleanData$year)
 ```
@@ -150,6 +164,16 @@ locations <- cleanData %>%
             decimalLongitude = first(decimalLongitude)) %>% 
   ungroup() %>% 
   filter(locationID != "")
+
+locations_missing_coords <- locations %>% 
+  filter(is.na(decimalLatitude) | is.na(decimalLongitude)) %>% 
+  left_join(cleanData, by = "locationID") %>% 
+  select(locationID, decimalLatitude.y, decimalLongitude.y)
+
+write_csv(locations_missing_coords, "./interim/locations_missing_coords.csv")
+
+locations <- locations %>% 
+  filter(!is.na(decimalLatitude))
 
 locations <- st_as_sf(locations, 
                       coords = c("decimalLongitude", "decimalLatitude"),
