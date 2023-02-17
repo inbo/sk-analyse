@@ -15,7 +15,7 @@ Currently there is only 1 dataset but in the future there will be 2
 
 ```{r get data from gbif, include=FALSE}
 datasetkeys <- c("ea95fd9b-58dc-4e48-b51f-9380e9804607", 
-"ea95fd9b-58dc-4e48-b51f-9380e9804607")
+                 "5b8bcba7-cecb-4d95-9865-2830cd4e35aa")
 taxonkey <- c(2427091)
 
 gbif_downloadKey <- occ_download(pred_in("datasetKey", datasetkeys),
@@ -37,73 +37,80 @@ cleanData <- occ_download_import(x = gbif_download)
 lifeStage_output <- data.frame()
 locality_output <- data.frame()
 
-for(d in datasetkeys){
-  extractDir <- file.path(tempdir(), "gbifdownload", d)
-  utils::unzip(gbif_download[[1]], exdir = extractDir, overwrite = TRUE)
-  verbatimFile <- list.files(extractDir, pattern = "verbatim", full.names = TRUE)
-  verbatimData <- read.table(file = verbatimFile, sep = "\t", header = TRUE) %>% 
-    select(gbifID, lifeStage, verbatimLocality) 
-  
-  lifeStages <- verbatimData %>% 
-    select(gbifID, lifeStage) %>% 
-    separate(lifeStage, 
-             sep = ";",
-             into = c("stage1",
-                      "stage2",
-                      "stage3",
-                      "stage4",
-                      "stage5",
-                      "stage6",
-                      "stage7",
-                      "stage8",
-                      "stage9",
-                      "stage10",
-                      "stage11",
-                      "stage12",
-                      "stage13",
-                      "stage14",
-                      "stage15",
-                      "stage16",
-                      "stage17")) %>% 
-    pivot_longer(cols = contains("stage"),
-                 names_to = "lifestage_nr",
-                 values_to = "lifeStage") %>% 
-    select(-lifestage_nr) %>% 
-    mutate(lifeStage = str_remove(lifeStage, " "),
-           lifeStage = str_remove(lifeStage, "lenght:")) %>% 
-    separate(lifeStage, sep = ":",
-             into = c("lifeStage2",
-                      "n")) %>% 
-    mutate(n = as.numeric(n)) %>% 
-    filter(n != 0,
-           !is.na(n)) %>% 
-    mutate(lifeStage = case_when(grepl("larvae", lifeStage2) ~ "larvae",
-                                 grepl("metamorph", lifeStage2) ~ "juvenile",
-                                 grepl("adult", lifeStage2) ~ "adult",
-                                 grepl("Juvenieloops", lifeStage2) ~ "juvenile",
-                                 gbifID == 1135631008 ~ "larvae",
-                                 TRUE ~ lifeStage2)) %>% 
-    group_by(gbifID, lifeStage) %>% 
-    summarise(n = sum(n, na.rm = TRUE))
-  
-  if(nrow(lifeStage_output) == 0){
-    lifeStage_output <- lifeStages
-  }else{
-    lifeStage_output <- rbind(lifeStage_output, lifeStages)
-  }
-  
-  localities <- verbatimData %>% 
-    select(gbifID, verbatimLocality)
-  
-  if(nrow(locality_output) == 0){
-    locality_output <- localities
-  }else{
-    locality_output <- rbind(locality_output, localities)
-  }
-}
+extractDir <- file.path(tempdir(), "gbifdownload")
+utils::unzip(gbif_download[[1]], exdir = extractDir, overwrite = TRUE)
+verbatimFile <- list.files(extractDir, pattern = "verbatim", full.names = TRUE)
+verbatimData <- read.table(file = verbatimFile, sep = "\t", header = TRUE) 
+```
 
-table(lifeStages$lifeStage, useNA = "ifany")
+```{r mapping until 2018, include=FALSE}
+verbatimData_until_2018 <- verbatimData %>% 
+  filter(datasetName == "Invasive species - American bullfrog (Lithobates catesbeiana) in Flanders, Belgium") %>% 
+  select(gbifID, lifeStage, verbatimLocality)
 
+lifeStages_until_2018 <- verbatimData_until_2018 %>% 
+  select(gbifID, lifeStage) %>% 
+  separate(lifeStage, 
+           sep = ";",
+           into = c("stage1",
+                    "stage2",
+                    "stage3",
+                    "stage4",
+                    "stage5",
+                    "stage6",
+                    "stage7",
+                    "stage8",
+                    "stage9",
+                    "stage10",
+                    "stage11",
+                    "stage12",
+                    "stage13",
+                    "stage14",
+                    "stage15",
+                    "stage16",
+                    "stage17")) %>% 
+  pivot_longer(cols = contains("stage"),
+               names_to = "lifestage_nr",
+               values_to = "lifeStage") %>% 
+  select(-lifestage_nr) %>% 
+  mutate(lifeStage = str_remove(lifeStage, " "),
+         lifeStage = str_remove(lifeStage, "lenght:")) %>% 
+  separate(lifeStage, sep = ":",
+           into = c("lifeStage2",
+                    "n")) %>% 
+  mutate(n = as.numeric(n)) %>% 
+  filter(n != 0,
+         !is.na(n)) %>% 
+  mutate(lifeStage = case_when(grepl("larvae", lifeStage2) ~ "larvae",
+                               grepl("metamorph", lifeStage2) ~ "juvenile",
+                               grepl("adult", lifeStage2) ~ "adult",
+                               grepl("Juvenieloops", lifeStage2) ~ "juvenile",
+                               gbifID == 1135631008 ~ "larvae",
+                               TRUE ~ lifeStage2)) %>% 
+  group_by(gbifID, lifeStage) %>% 
+  summarise(n = sum(n, na.rm = TRUE))
+
+table(lifeStages_until_2018$lifeStage, useNA = "ifany")
+
+localities_until_2018 <- verbatimData_until_2018 %>% 
+  select(gbifID, verbatimLocality)
+```
+
+```{r mapping post 2018, include=FALSE}
+verbatimData_post_2018 <- verbatimData %>% 
+  filter(datasetName == "Invasive species - American bullfrog (Lithobates catesbeianus) in Flanders, Belgium (post 2018)") %>% 
+  select(gbifID, lifeStage, verbatimLocality)
+
+table(verbatimData_post_2018$lifeStage, useNA = "ifany")
+table(verbatimData_post_2018$verbatimLocality, useNA = "ifany")
+```
+
+```{r combine until/post 2018, include=FALSE}
+lifeStage_output <- rbind(lifeStages_until_2018, lifeStages_post_2018)
+locality_output <- rbind(localities_until_2018, localities_post_2018)
+```
+
+```{r merge with cleandata, include=FALSE}
 cleanData <- cleanData %>% 
   select(-lifeStage, -verbatimLocality) %>% 
   left_join(lifeStage_output) %>% 
@@ -177,8 +184,8 @@ cleanData <- cleanData %>%
 met_fuiknr_1 <- cleanData %>% 
   filter(locality != "") %>% 
   mutate(fuiknr = as.numeric(gsub(pattern = "Fuik ",
-                       replacement = "",
-                       locality)),
+                                  replacement = "",
+                                  locality)),
          fuiknr = case_when(gbifID == 1135634678 ~ 3, # fuiknr zonder spatie
                             TRUE ~ fuiknr)) 
 
