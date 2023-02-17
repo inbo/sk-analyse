@@ -14,7 +14,8 @@ gbif_user <- Sys.getenv("gbif_user")
 Currently there is only 1 dataset but in the future there will be 2
 
 ```{r get data from gbif, include=FALSE}
-datasetkeys <- c("ea95fd9b-58dc-4e48-b51f-9380e9804607")
+datasetkeys <- c("ea95fd9b-58dc-4e48-b51f-9380e9804607", 
+"ea95fd9b-58dc-4e48-b51f-9380e9804607")
 taxonkey <- c(2427091)
 
 gbif_downloadKey <- occ_download(pred_in("datasetKey", datasetkeys),
