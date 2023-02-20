@@ -252,6 +252,10 @@ write_csv(afvangsten_per_vangst, "./interim/afvangsten_per_vangst.csv")
 ```
 
 ```{r datacleaning - afvangsten voor gbif}
+afvangsten_vr_gbif_old <- read_csv("./output/gbif_stierkikker_vangsten.csv") %>% 
+  dplyr::select(-Jaar,
+                -`Net verhoogd?`)
+
 afvangsten_vr_gbif <- afvangsten_per_fuik %>%
   filter(Jaar > 2018) %>% 
   select(-larven_fuik,
@@ -271,15 +275,34 @@ afvangsten_vr_gbif <- afvangsten_per_fuik %>%
                names_to = "lifestage",
                values_to = "individualCount") %>% 
   ungroup() %>% 
-  rowid_to_column(var = "occurrenceID") %>% 
-  group_by(occurrenceID) %>% 
-  mutate(occurrenceID = UUIDgenerate()) %>% 
+  rowid_to_column(var = "rowid") %>% 
   mutate(scientificname = "Lithobates catesbeianus",
          taxonkey = 2427091,
          recordedBy = Organisation,
          identifiedBy = Organisation) %>% 
   filter(!is.na(individualCount)) %>% 
-  dplyr::select(-Organisation)
+  dplyr::select(-Organisation) %>% 
+  left_join(afvangsten_vr_gbif_old)
+
+afvangsten_vr_gbif <- afvangsten_vr_gbif %>% 
+  group_by(rowid) %>% 
+  add_tally() 
+
+dups <- afvangsten_vr_gbif %>% 
+  filter(n > 1) %>% 
+  ungroup() %>% 
+  distinct(rowid,Tijdstempel,Datum,Jaar,Locatie,actie,fuiklengte,`Net verhoogd?`,lat,long,Type,locationID,eventID,no_fuiken,fuikNr,Opmerkingen,Hoek,fuiktype,lifestage,individualCount,scientificname,taxonkey,recordedBy,identifiedBy,.keep_all = TRUE)
+
+unis <- afvangsten_vr_gbif %>% 
+  filter(n == 1)
+  
+afvangsten_vr_gbif <- rbind(unis) %>% 
+  dplyr::select(-n) %>% 
+  group_by(rowid) %>% 
+  mutate(occurrenceID = case_when(is.na(occurrenceID) ~ UUIDgenerate(),
+                                  TRUE ~ occurrenceID)) %>% 
+  ungroup() %>% 
+  dplyr::select(occurrenceID,Tijdstempel,Datum,Jaar,Locatie,actie,fuiklengte,`Net verhoogd?`,lat,long,Type,locationID,eventID,no_fuiken,fuikNr,Opmerkingen,Hoek,fuiktype,lifestage,individualCount,scientificname,taxonkey,recordedBy,identifiedBy)
 
 events2 <- afvangsten_vr_gbif %>% 
   ungroup() %>% 
