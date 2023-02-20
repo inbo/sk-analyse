@@ -254,8 +254,7 @@ write_csv(afvangsten_per_vangst, "./interim/afvangsten_per_vangst.csv")
 ```{r datacleaning - afvangsten voor gbif}
 afvangsten_vr_gbif <- afvangsten_per_fuik %>%
   filter(Jaar > 2018) %>% 
-  select(-no_fuiken,
-         -larven_fuik,
+  select(-larven_fuik,
          -totaal_fuik,
          -correctie_factor,
          -larven_corrected,
