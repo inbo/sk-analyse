@@ -2,7 +2,7 @@
 installed <- rownames(installed.packages())
 # specify packages we need
 required <- c("tidyverse", "here","httr",
-              "tidylog", "rgbif", "googlesheets4", "uuid",
+              "rgbif", "googlesheets4", "uuid",
               "testthat" # to run tests in test_dwc_occurrence.R
 )
 # install packages if needed

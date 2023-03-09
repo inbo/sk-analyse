@@ -14,7 +14,7 @@ library(googlesheets4)
 library(uuid)
 library(rgbif)
 library(tidyverse)
-library(tidylog)
+#library(tidylog)
 ```
 
 get env variables to authenticate
