@@ -2,6 +2,10 @@ on:
   schedule:
     - cron: "0 0 1,15,30 3-11 *"
     
+  push:
+    branches:
+      - '28-fetch-data-fails'
+    
 name: fetch-data
 
 jobs:
