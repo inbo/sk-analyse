@@ -191,15 +191,25 @@ occurrence %<>% mutate(dwc_habitat = recode(type
 ```{r}
 occurrence %<>% mutate(dwc_samplingProtocol = recode(actie
                                                      ,"Afvangst" = "catch, fike"
-                                                     ,"YPT" = "yellow pan tras"
-                                                     ,"MT" = "Malaise trap"
-                                                     ,"RsPT" = "pink pan traps"
-                                                     ,"HC" = "collected by hand"
-                                                     ,"YPT/RPT" = "yellow and red pan traps"
-                                                     ,"WPT" = "white pan traps"
-                                                     ,"BPT" = "blue pan traps"
+                                                     
                                                      )) 
 ```
+### sampleSizeValue
+
+```{r}
+occurrence %<>% mutate(dwc_samplingSizeValue = no_fuiken) 
+```
+### sampleSizeUnit
+
+```{r}
+occurrence %<>% mutate(dwc_sampleSizeUnit = recode(fuiktype
+                                                   ,"dubbele fuik" = "paired fyke"
+                                                   ,"salamanderfuik drijvend" = "paired fyke"
+                                                   ,"enkele fuik" = "single fyke"
+                                                   , .default = "fyke"
+                                                     )) 
+```
+
 ### sex
 
 ```{r}
@@ -226,7 +236,9 @@ occurrence %<>% mutate(dwc_locationID = location_id)
 ### locality
 
 ```{r}
-occurrence %<>% mutate(dwc_locality = locatie)
+
+occurrence %<>% mutate(dwc_locality = paste(locatie,"|","number of fykes: ", no_fuiken, sep = ' '))
+
 
 ```
 
