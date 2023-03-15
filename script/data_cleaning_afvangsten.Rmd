@@ -252,10 +252,13 @@ write_csv(afvangsten_per_vangst, "./interim/afvangsten_per_vangst.csv")
 ```
 
 ```{r datacleaning - afvangsten voor gbif}
+afvangsten_vr_gbif_old <- read_csv("./output/gbif_stierkikker_vangsten.csv") %>% 
+  dplyr::select(-Jaar,
+                -`Net verhoogd?`)
+
 afvangsten_vr_gbif <- afvangsten_per_fuik %>%
   filter(Jaar > 2018) %>% 
-  select(-no_fuiken,
-         -larven_fuik,
+  select(-larven_fuik,
          -totaal_fuik,
          -correctie_factor,
          -larven_corrected,
@@ -272,15 +275,34 @@ afvangsten_vr_gbif <- afvangsten_per_fuik %>%
                names_to = "lifestage",
                values_to = "individualCount") %>% 
   ungroup() %>% 
-  rowid_to_column(var = "occurrenceID") %>% 
-  group_by(occurrenceID) %>% 
-  mutate(occurrenceID = UUIDgenerate()) %>% 
+  rowid_to_column(var = "rowid") %>% 
   mutate(scientificname = "Lithobates catesbeianus",
          taxonkey = 2427091,
          recordedBy = Organisation,
          identifiedBy = Organisation) %>% 
   filter(!is.na(individualCount)) %>% 
-  dplyr::select(-Organisation)
+  dplyr::select(-Organisation) %>% 
+  left_join(afvangsten_vr_gbif_old)
+
+afvangsten_vr_gbif <- afvangsten_vr_gbif %>% 
+  group_by(rowid) %>% 
+  add_tally() 
+
+dups <- afvangsten_vr_gbif %>% 
+  filter(n > 1) %>% 
+  ungroup() %>% 
+  distinct(rowid,Tijdstempel,Datum,Jaar,Locatie,actie,fuiklengte,`Net verhoogd?`,lat,long,Type,locationID,eventID,no_fuiken,fuikNr,Opmerkingen,Hoek,fuiktype,lifestage,individualCount,scientificname,taxonkey,recordedBy,identifiedBy,.keep_all = TRUE)
+
+unis <- afvangsten_vr_gbif %>% 
+  filter(n == 1)
+  
+afvangsten_vr_gbif <- rbind(unis) %>% 
+  dplyr::select(-n) %>% 
+  group_by(rowid) %>% 
+  mutate(occurrenceID = case_when(is.na(occurrenceID) ~ UUIDgenerate(),
+                                  TRUE ~ occurrenceID)) %>% 
+  ungroup() %>% 
+  dplyr::select(occurrenceID,Tijdstempel,Datum,Jaar,Locatie,actie,fuiklengte,`Net verhoogd?`,lat,long,Type,locationID,eventID,no_fuiken,fuikNr,Opmerkingen,Hoek,fuiktype,lifestage,individualCount,scientificname,taxonkey,recordedBy,identifiedBy)
 
 events2 <- afvangsten_vr_gbif %>% 
   ungroup() %>% 
@@ -298,6 +320,11 @@ n_distinct(afvangsten_vr_gbif$eventID) == nrow(events2)
 ```
 
 ```{r datacleaning - bijvangsten vr gbif}
+data_bijvangsten_old <- read_csv("./output/gbif_stierkikker_bijvangsten.csv") %>% 
+  dplyr::select(-Jaar,
+                -`Net verhoogd?`,
+                -taxonkey)
+
 data_bijvangsten <- data %>% 
   filter(!is.na(locationID),
          grepl("Afvangst", `Wat wil je melden`),
@@ -381,10 +408,8 @@ data_bijvangsten <- data %>%
   select(-fuiktype_1,
          -fuiktype_2) %>% 
   ungroup() %>% 
-  rowid_to_column(var = "occurrenceID") %>% 
-  group_by(occurrenceID) %>% 
-  mutate(occurrenceID = UUIDgenerate(),
-         lifestage = NA_character_,
+  rowid_to_column(var = "rowid") %>% 
+  mutate(lifestage = NA_character_,
          individualCount = NA_integer_) %>% 
   mutate(Datum = as.Date(Datum, format = "%d-%m-%Y"),
          Tijdstempel = parse_datetime(Tijdstempel, format = "%d-%m-%Y %H:%M:%S"),
@@ -398,7 +423,8 @@ data_bijvangsten <- data %>%
   filter(fuikNr2 <= max_fuikNr) %>% 
   dplyr::select(-Organisation,
                 -fuikNr2,
-                -max_fuikNr)
+                -max_fuikNr) %>% 
+  left_join(data_bijvangsten_old)
 
 species <- unique(data_bijvangsten$scientificname)
 
@@ -428,7 +454,13 @@ for(s in species){
 
 data_bijvangsten <- data_bijvangsten %>% 
   left_join(temp_taxonkey,
-            by = c("scientificname" = "species"))
+            by = c("scientificname" = "species")) %>% 
+  group_by(rowid) %>% 
+  mutate(occurrenceID = case_when(is.na(occurrenceID) ~ UUIDgenerate(),
+                                  TRUE ~ occurrenceID)) %>% 
+  ungroup() %>% 
+  dplyr::select(-rowid,
+                -`Invuller 2`, occurrenceID,Tijdstempel,Datum,Locatie,actie,fuiklengte,lat,long,Type,locationID,eventID,no_fuiken,fuikNr,Hoek,Opmerkingen,scientificname,fuiktype,lifestage,individualCount,recordedBy,identifiedBy)
 
 x <- names(afvangsten_vr_gbif)
 y <- names(data_bijvangsten)
@@ -438,9 +470,23 @@ y_not_x <- setdiff(y, x)
 
 #max(str_count(data_bijvangsten$species, ";"), na.rm = TRUE)
 
-table(afvangsten_vr_gbif$recordedBy,
-      afvangsten_vr_gbif$identifiedBy,
+table(data_bijvangsten$recordedBy,
+      data_bijvangsten$identifiedBy,
       useNA = "ifany")
+
+events3 <- data_bijvangsten %>% 
+  ungroup() %>% 
+  distinct(Datum,
+           Jaar,
+           Locatie,
+           actie,
+           lat,
+           long,
+           locationID,
+           eventID) 
+
+n_distinct(data_bijvangsten$occurrenceID) == nrow(data_bijvangsten)
+n_distinct(data_bijvangsten$eventID) == nrow(events3)
 ```
 
 ```{r datacleaning - export dfs vr gbif}
