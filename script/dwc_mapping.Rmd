@@ -270,7 +270,7 @@ occurrence %<>% mutate(dwc_locationID = location_id)
 ### locality
 
 ```{r}
-occurrence %<>% mutate(dwc_locality = paste(locatie,"|","number of fykes: ", no_fuiken, sep = ' '))
+occurrence %<>% mutate(dwc_locality = paste(locatie))
 
 ```
 
