@@ -21,8 +21,8 @@ library(magrittr)       # To use %<>% pipes
 library(here)           # To find files
 library(janitor)        # To clean input data
 library(readxl)         # To read Excel files
-library(rgbif)          # To use GBIF services
-library(uuid)           # To generate UUID's
+##library(rgbif)          # To use GBIF services
+##library(uuid)           # To generate UUID's
 ```
 
 # Read source data
@@ -204,7 +204,7 @@ occurrence %<>% mutate(dwc_samplingSizeValue = no_fuiken)
 ```{r}
 occurrence %<>% mutate(dwc_sampleSizeUnit = recode(fuiktype
                                                    ,"dubbele fuik" = "paired fyke"
-                                                   ,"salamanderfuik drijvend" = "paired fyke"
+                                                   ,"salamanderfuik drijvend" = "amphibian fyke floating"
                                                    ,"enkele fuik" = "single fyke"
                                                    , .default = "fyke"
                                                      )) 
@@ -237,7 +237,7 @@ occurrence %<>% mutate(dwc_locationID = location_id)
 
 ```{r}
 
-occurrence %<>% mutate(dwc_locality = paste(locatie,"|","number of fykes: ", no_fuiken, sep = ' '))
+occurrence %<>% mutate(dwc_locality = paste(locatie))
 
 
 ```
