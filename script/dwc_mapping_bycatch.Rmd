@@ -204,8 +204,10 @@ occurrence %<>% mutate(dwc_samplingSizeValue = no_fuiken)
 ```{r}
 occurrence %<>% mutate(dwc_sampleSizeUnit = recode(fuiktype
                                                    ,"dubbele fuik" = "paired fyke"
-                                                   ,"salamanderfuik drijvend" = "amphibian fyke floating"
+                                                   ,"salamanderfuik drijvend NA" = "amphibian trap floating"
+                                                   ,"salamanderfuik bodem" = "amphibian trap bottom"
                                                    ,"enkele fuik" = "single fyke"
+                                                   ,"vrijwilligers Natuurpunt" = "unspecified fyke net"
                                                    , .default = "fyke"
                                                      )) 
 ```
@@ -394,8 +396,9 @@ write_csv(occurrence, here::here("darwincore", "processed", "occurrenceSKBC.csv"
 ```{r}
 test <- length(unique(occurrence$eventID))
 test2 <- length(unique(occurrence$occurrenceID))
-
 n_occur <- data.frame(table(occurrence$occurrenceID))
+traps <- distinct(input_data, fuiktype, .keep_all = FALSE)
+traps2 <- distinct(occurrence, sampleSizeUnit, .keep_all = FALSE)
 
 ```
 
