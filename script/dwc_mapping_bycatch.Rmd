@@ -197,7 +197,7 @@ occurrence %<>% mutate(dwc_samplingProtocol = recode(actie
 ### sampleSizeValue
 
 ```{r}
-occurrence %<>% mutate(dwc_samplingSizeValue = no_fuiken) 
+occurrence %<>% mutate(dwc_sampleSizeValue = no_fuiken) 
 ```
 ### sampleSizeUnit
 
