@@ -17,6 +17,7 @@ library(dplyr)
 library(readr)
 library(magrittr)
 library(tidyr)
+library(tibble)
 #library(tidylog)
 ```
 
