@@ -13,8 +13,12 @@ Je maakt dit type bestand door eerst in kladblok (of een andere tekstverwerker z
 library(googlesheets4)
 library(uuid)
 library(rgbif)
-library(tidyverse)
-library(tidylog)
+library(dplyr)
+library(readr)
+library(magrittr)
+library(tidyr)
+library(tibble)
+#library(tidylog)
 ```
 
 get env variables to authenticate
