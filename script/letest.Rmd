@@ -84,7 +84,6 @@ ggplot(data = test, aes(x = hoek2, y = mean_total_impact, fill = classification)
   scale_y_log10()
 
 ggplot(data = test, aes(x = hoek2, y = mean_total_impact, fill = classification)) + 
-  geom_violin(color = NA) +
   geom_boxplot() +
   scale_y_log10()
   
