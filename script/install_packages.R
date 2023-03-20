@@ -1,9 +1,9 @@
 # get packages installed on machine
 installed <- rownames(installed.packages())
 # specify packages we need
-required <- c("tidyverse", "here","httr",
+required <- c("dplyr", "here","httr", "readr",
               "rgbif", "googlesheets4", "uuid",
-              "testthat" # to run tests in test_dwc_occurrence.R
+              "testthat", "magrittr", "tidyr" # to run tests in test_dwc_occurrence.R
 )
 # install packages if needed
 if (!all(required %in% installed)) {
