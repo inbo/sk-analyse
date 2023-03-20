@@ -1,0 +1,115 @@
+```{r libraries}
+library(tidyverse)
+library(rstatix)
+```
+
+```{r}
+afvangsten_per_fuik <- read_csv("interim/afvangsten_per_fuik.csv") %>% 
+  mutate(hoek2 = case_when(Hoek == "00°" ~ "00°",
+                           Hoek == "180" ~ "90°",
+                           Hoek == "45" ~ "45°",
+                           Hoek == "45°" ~ "45°",
+                           Hoek == "90°" ~ "90°",
+                           TRUE ~ NA_character_)) %>% 
+  group_by(eventID, fuikNr, fuiktype, hoek2) %>% 
+  mutate(juveniel_fuik = sum(M1, M2, na.rm = TRUE),
+         adult_fuik = sum(AM, AV, na.rm = TRUE),
+         sm_larven = sum(L00, L0, na.rm = TRUE),
+         lg_larven = sum(L1, L2, na.rm = TRUE)) %>% 
+  ungroup()
+
+pond_classification <- afvangsten_per_fuik %>% 
+  group_by(locationID, Locatie) %>% 
+  summarise(larven = sum(L00, L0, L1, L2, na.rm = TRUE),
+            juvenielen = sum(juveniel_fuik, na.rm = TRUE),
+            adulten = sum(adult_fuik, na.rm = TRUE),
+            jaren = n_distinct(Jaar)) %>% 
+  mutate(classification = case_when(larven >= 100 ~ "Breeding", 
+                                    larven < 100 & juvenielen >= 1 || adulten >= 1 ~ "Refuge",
+                                    TRUE ~ "Absent"))
+
+first_catch <- afvangsten_per_fuik %>% 
+  group_by(locationID) %>% 
+  mutate(first_jaar = min(Jaar, na.rm = TRUE)) %>% 
+  filter(Jaar == first_jaar) %>% 
+  mutate(week = format(Datum, "%W")) %>% 
+  ungroup() %>% 
+  group_by(locationID, first_jaar) %>% 
+  summarise(first_week = min(week, na.rm = TRUE)) 
+
+table(pond_classification$classification)
+
+# left_join(first_catch) %>% 
+#   mutate(week = format(Datum, "%W")) %>% 
+#   filter(Jaar == first_jaar,
+#          week == first_week) 
+
+test <- afvangsten_per_fuik %>% 
+  left_join(pond_classification) %>% 
+  filter(classification != "Absent") %>% 
+  mutate(impact_larven_sm = sm_larven * 0.21,
+         impact_larven_lg = lg_larven * 0.39,
+         impact_juveniel = juveniel_fuik * 1.7,
+         impact_adult = adult_fuik * 0.91) %>% 
+  group_by(locationID, Jaar, hoek2, classification) %>% 
+  summarise(total_impact = sum(impact_larven_sm, 
+                            impact_larven_lg, 
+                            impact_juveniel, 
+                            impact_adult, 
+                            na.rm = TRUE),
+            vangsten = n_distinct(eventID),
+            mean_total_impact = total_impact/vangsten) %>% 
+  ungroup() %>% 
+  filter(!is.na(hoek2))
+
+stats <- test %>% 
+  group_by(classification, hoek2) %>% 
+  summarise(mean = mean(total_impact, na.rm = TRUE),
+            SE = sd(total_impact, na.rm = TRUE),
+            SE_min = mean - SE,
+            SE_plus = mean + SE)
+  
+summary(test$impact_larven_sm)
+summary(test$impact_larven_lg)
+summary(test$impact_juveniel)
+summary(test$impact_adult)
+summary(test$total_impact)
+
+table(test$hoek2, test$classification, useNA = "ifany")
+```
+
+```{r}
+ggplot(data = test, aes(x = hoek2, y = mean_total_impact, fill = classification)) + 
+  geom_bar(stat = "identity", position = "dodge") +
+  scale_y_log10()
+
+ggplot(data = test, aes(x = hoek2, y = mean_total_impact, fill = classification)) + 
+  geom_violin(color = NA) +
+  geom_boxplot() +
+  scale_y_log10()
+  
+
+table(test$classification, test$hoek2, useNA = "ifany")
+```
+
+```{r}
+test %>% kruskal_test(total_impact ~ classification)
+
+test %>% 
+  filter(classification == "Breeding") %>% 
+  kruskal_test(total_impact ~ hoek2)
+
+test %>% 
+  filter(classification == "Breeding") %>% 
+  wilcox_test(total_impact ~ hoek2, p.adjust.method = "bonferroni")
+
+test %>% 
+  filter(classification == "Refuge") %>% 
+  kruskal_test(total_impact ~ hoek2)
+
+test %>% 
+  filter(classification == "Refuge") %>% 
+  wilcox_test(total_impact ~ hoek2, p.adjust.method = "bonferroni")
+```
+
+
