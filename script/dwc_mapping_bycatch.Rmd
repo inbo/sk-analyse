@@ -15,7 +15,7 @@ knitr::opts_chunk$set(echo = TRUE, warning = FALSE, message = TRUE)
 Load libraries:
 
 ```{r message = FALSE}
-library(tidyverse)      # To do data science
+library(dplyr)      # To do data science
 library(tidylog)        # To provide feedback on dplyr functions
 library(magrittr)       # To use %<>% pipes
 library(here)           # To find files
@@ -23,6 +23,9 @@ library(janitor)        # To clean input data
 library(readxl)         # To read Excel files
 ##library(rgbif)          # To use GBIF services
 ##library(uuid)           # To generate UUID's
+library(readr)
+library(stringr)
+library(tidyr)
 ```
 
 # Read source data
