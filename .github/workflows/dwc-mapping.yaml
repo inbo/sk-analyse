@@ -74,7 +74,6 @@ jobs:
           github_token: ${{ secrets.AUTOMATISATION }}
           commit_prefix: "[AUTO]"
           commit_message: "dwc mapping bycatch"
-          target_branch: automatic-dwc-mapping
           
       - name: DWC join bycatch with catch
         run: |
@@ -87,7 +86,6 @@ jobs:
           github_token: ${{ secrets.AUTOMATISATION }}
           commit_prefix: "[AUTO]"
           commit_message: "dwc join bycatch with catch"
-          target_branch: automatic-dwc-mapping
 
       - name: Get branch name
         run: |
