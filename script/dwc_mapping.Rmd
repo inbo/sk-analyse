@@ -30,7 +30,7 @@ library(readxl)         # To read Excel files
 #library(rgbif)          # To use GBIF services
 #library(uuid)           # To generate UUID's
 library(readr)
-library(stingr)
+library(stringr)
 library(tidyr)
 ```
 
