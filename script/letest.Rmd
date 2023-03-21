@@ -165,7 +165,7 @@ afvangsten_pond_stage_angle <- afvangsten_per_fuik_int %>%
          impact_larven_lg = (lg_larven/fuik_dagen) * sens_larven_lg,
          impact_juveniel = (juveniel/fuik_dagen) * sens_juveniel,
          impact_adult = (adult/fuik_dagen) * sens_adult,
-         total_impact = sum(impact_larven_sm, impact_larven_lg, impact_juveniel, impact_adult))
+         total_impact = sum(impact_larven_sm, impact_larven_lg, impact_juveniel, impact_adult)) %>% ungroup()
 ```
 
 ```{r graphs}
