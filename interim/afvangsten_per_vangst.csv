@@ -402,9 +402,9 @@ Datum,Locatie,locationID,eventID,larven_vangst,larven_vangst_corrected,totaal_va
 2020-05-23,griesbroek 6,03dc3f07-506f-4c71-bbcd-ad24c177cab5,23-5-2020_griesbroek 6,423,423,438,438,7,60.42857142857143,60.42857142857143,62.57142857142857,62.57142857142857,Natuurwerk
 2020-05-23,scheps 20,03167d3d-4f00-42b8-b8be-fbe739205a3c,23-5-2020_scheps 20,107,107,109,109,4,26.75,26.75,27.25,27.25,Natuurwerk
 2020-05-27,nijlen d2,cd389f4a-ecc8-4265-aded-b22e467d8ace,27-5-2020_nijlen d2,0,0,0,0,1,0,0,0,0,Natuurpunt
-2020-05-28,arendonk-visput,565a4567-d1be-4176-8109-a1b0f0196304,28-5-2020_arendonk-visput,0,0,0,0,2,0,0,0,0,Natuurpunt
 2020-05-28,arendonk 1,91a8e2bb-b682-4c53-b213-7494198b12ce,28-5-2020_arendonk 1,0,0,0,0,4,0,0,0,0,Natuurpunt
 2020-05-28,arendonk 4,a7a15699-ae79-44ec-9f82-08ee0158e31d,28-5-2020_arendonk 4,0,0,0,0,2,0,0,0,0,Natuurpunt
+2020-05-28,arendonk-visput,565a4567-d1be-4176-8109-a1b0f0196304,28-5-2020_arendonk-visput,0,0,0,0,2,0,0,0,0,Natuurpunt
 2020-05-28,nijlen d1,ca036ff6-e973-4666-8780-ac1068fa43ca,28-5-2020_nijlen d1,0,0,0,0,4,0,0,0,0,Natuurpunt
 2020-05-28,nijlen d2,cd389f4a-ecc8-4265-aded-b22e467d8ace,28-5-2020_nijlen d2,0,0,0,0,1,0,0,0,0,Natuurpunt
 2020-05-28,nijlen d3,01c64427-44d5-497c-bbdc-dbff8b1c8dc7,28-5-2020_nijlen d3,0,0,0,0,3,0,0,0,0,Natuurpunt
@@ -428,12 +428,12 @@ Datum,Locatie,locationID,eventID,larven_vangst,larven_vangst_corrected,totaal_va
 2020-06-18,retiebaan 1,007f5913-1bdf-4e46-b2e3-587a0437fdbc,18-6-2020_retiebaan 1,0,0,0,0,2,0,0,0,0,Natuurpunt
 2020-06-18,retiebaan 2,4e76c083-9d1e-4900-8395-911d04e4e5ea,18-6-2020_retiebaan 2,0,0,0,0,2,0,0,0,0,Natuurpunt
 2020-06-18,retiebaan 3,0db5f7a9-ae54-41f3-9763-fe3d472a2a15,18-6-2020_retiebaan 3,0,0,0,0,1,0,0,0,0,Natuurpunt
-2020-06-23,arendonk-visput,565a4567-d1be-4176-8109-a1b0f0196304,23-6-2020_arendonk-visput,0,0,0,0,2,0,0,0,0,Natuurpunt
 2020-06-23,arendonk 1,91a8e2bb-b682-4c53-b213-7494198b12ce,23-6-2020_arendonk 1,0,0,0,0,2,0,0,0,0,Natuurpunt
 2020-06-23,arendonk 2,fbb3baeb-c846-444c-926e-02445e328b78,23-6-2020_arendonk 2,0,0,0,0,2,0,0,0,0,Natuurpunt
 2020-06-23,arendonk 2b,6512a7da-95ea-46ef-a040-cc6b08da02be,23-6-2020_arendonk 2b,0,0,0,0,1,0,0,0,0,Natuurpunt
 2020-06-23,arendonk 3,60e6e43e-6855-4917-a336-9ac46d087fad,23-6-2020_arendonk 3,0,0,1,1,2,0,0,0.5,0.5,Natuurpunt
 2020-06-23,arendonk 4,a7a15699-ae79-44ec-9f82-08ee0158e31d,23-6-2020_arendonk 4,0,0,2,2,2,0,0,1,1,Natuurpunt
+2020-06-23,arendonk-visput,565a4567-d1be-4176-8109-a1b0f0196304,23-6-2020_arendonk-visput,0,0,0,0,2,0,0,0,0,Natuurpunt
 2020-06-24,nijlen g8,aeb8c3ff-e973-43d5-b03a-2e9bbd18b888,24-6-2020_nijlen g8,0,0,0,0,4,0,0,0,0,Natuurpunt
 2020-06-24,nijlen l10,aff4c141-a84a-4013-bdd1-8890dae6b376,24-6-2020_nijlen l10,0,0,0,0,4,0,0,0,0,Natuurpunt
 2020-06-25,nijlen g8,aeb8c3ff-e973-43d5-b03a-2e9bbd18b888,25-6-2020_nijlen g8,0,0,0,0,4,0,0,0,0,Natuurpunt
@@ -485,12 +485,12 @@ Datum,Locatie,locationID,eventID,larven_vangst,larven_vangst_corrected,totaal_va
 2020-07-10,laakdal 3,d415562e-8a6a-4234-9bc8-23cd09f85748,10-7-2020_laakdal 3,0,0,6,6,4,0,0,1.5,1.5,Natuurwerk
 2020-07-10,laakdal 30,b9f26eb5-535f-4adb-a08c-a03acbdd911d,10-7-2020_laakdal 30,0,0,1,1,1,0,0,1,1,Natuurwerk
 2020-07-10,laakdal 9,cffd6091-a7ba-42fa-a5fb-975e7ab483d1,10-7-2020_laakdal 9,0,0,22,22,4,0,0,5.5,5.5,Natuurwerk
-2020-07-14,arendonk-visput,565a4567-d1be-4176-8109-a1b0f0196304,14-7-2020_arendonk-visput,0,0,0,0,2,0,0,0,0,Natuurpunt
 2020-07-14,arendonk 1,91a8e2bb-b682-4c53-b213-7494198b12ce,14-7-2020_arendonk 1,0,0,0,0,2,0,0,0,0,Natuurpunt
 2020-07-14,arendonk 2,fbb3baeb-c846-444c-926e-02445e328b78,14-7-2020_arendonk 2,0,0,0,0,2,0,0,0,0,Natuurpunt
 2020-07-14,arendonk 2b,6512a7da-95ea-46ef-a040-cc6b08da02be,14-7-2020_arendonk 2b,0,0,0,0,1,0,0,0,0,Natuurpunt
 2020-07-14,arendonk 3,60e6e43e-6855-4917-a336-9ac46d087fad,14-7-2020_arendonk 3,0,0,0,0,2,0,0,0,0,Natuurpunt
 2020-07-14,arendonk 4,a7a15699-ae79-44ec-9f82-08ee0158e31d,14-7-2020_arendonk 4,0,0,0,0,1,0,0,0,0,Natuurpunt
+2020-07-14,arendonk-visput,565a4567-d1be-4176-8109-a1b0f0196304,14-7-2020_arendonk-visput,0,0,0,0,2,0,0,0,0,Natuurpunt
 2020-07-14,bospoel,bf074168-c09d-40a9-b321-59ce253aa461,14-7-2020_bospoel,0,0,0,0,1,0,0,0,0,Natuurwerk
 2020-07-14,driehoek,48fb261c-3f3a-4a95-9103-1e6822dae999,14-7-2020_driehoek,0,0,0,0,1,0,0,0,0,Natuurwerk
 2020-07-14,laakdal 2,4b68612a-d69c-485b-b2ec-630445ffcc76,14-7-2020_laakdal 2,0,0,0,0,4,0,0,0,0,Natuurwerk
