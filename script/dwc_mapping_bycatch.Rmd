@@ -15,14 +15,17 @@ knitr::opts_chunk$set(echo = TRUE, warning = FALSE, message = TRUE)
 Load libraries:
 
 ```{r message = FALSE}
-library(tidyverse)      # To do data science
+library(dplyr)      # To do data science
 library(tidylog)        # To provide feedback on dplyr functions
 library(magrittr)       # To use %<>% pipes
 library(here)           # To find files
 library(janitor)        # To clean input data
 library(readxl)         # To read Excel files
-library(rgbif)          # To use GBIF services
-library(uuid)           # To generate UUID's
+##library(rgbif)          # To use GBIF services
+##library(uuid)           # To generate UUID's
+library(readr)
+library(stringr)
+library(tidyr)
 ```
 
 # Read source data
@@ -191,15 +194,27 @@ occurrence %<>% mutate(dwc_habitat = recode(type
 ```{r}
 occurrence %<>% mutate(dwc_samplingProtocol = recode(actie
                                                      ,"Afvangst" = "catch, fike"
-                                                     ,"YPT" = "yellow pan tras"
-                                                     ,"MT" = "Malaise trap"
-                                                     ,"RsPT" = "pink pan traps"
-                                                     ,"HC" = "collected by hand"
-                                                     ,"YPT/RPT" = "yellow and red pan traps"
-                                                     ,"WPT" = "white pan traps"
-                                                     ,"BPT" = "blue pan traps"
+                                                     
                                                      )) 
 ```
+### sampleSizeValue
+
+```{r}
+occurrence %<>% mutate(dwc_sampleSizeValue = no_fuiken) 
+```
+### sampleSizeUnit
+
+```{r}
+occurrence %<>% mutate(dwc_sampleSizeUnit = recode(fuiktype
+                                                   ,"dubbele fuik" = "paired fyke"
+                                                   ,"salamanderfuik drijvend NA" = "amphibian trap floating"
+                                                   ,"salamanderfuik bodem" = "amphibian trap bottom"
+                                                   ,"enkele fuik" = "single fyke"
+                                                   ,"vrijwilligers Natuurpunt" = "unspecified fyke net"
+                                                   , .default = "fyke"
+                                                     )) 
+```
+
 ### sex
 
 ```{r}
@@ -226,7 +241,9 @@ occurrence %<>% mutate(dwc_locationID = location_id)
 ### locality
 
 ```{r}
-occurrence %<>% mutate(dwc_locality = locatie)
+
+occurrence %<>% mutate(dwc_locality = paste(locatie))
+
 
 ```
 
@@ -382,8 +399,9 @@ write_csv(occurrence, here::here("darwincore", "processed", "occurrenceSKBC.csv"
 ```{r}
 test <- length(unique(occurrence$eventID))
 test2 <- length(unique(occurrence$occurrenceID))
-
 n_occur <- data.frame(table(occurrence$occurrenceID))
+traps <- distinct(input_data, fuiktype, .keep_all = FALSE)
+traps2 <- distinct(occurrence, sampleSizeUnit, .keep_all = FALSE)
 
 ```
 
