@@ -138,10 +138,11 @@ jaar <- 2018
 total_by_year_corrected_gem <- cleanData %>% 
   group_by(eventID, year, NISCODE, NAAM) %>% 
   summarise(effort = max(n_fuiken, na.rm = TRUE),
-            n = sum(individualCount, na.rm = TRUE)/effort) %>% 
+            n = sum(individualCount, na.rm = TRUE)) %>% 
   group_by(year, NISCODE, NAAM) %>% 
   summarise(effort = sum(effort, na.rm = TRUE),
-            n = sum(n, na.rm = TRUE)/effort) %>% 
+            n = sum(n, na.rm = TRUE)) %>% 
+  mutate(cpue = n/effort) %>% 
   filter(year == jaar,
          !is.na(NISCODE),
          !is.na(NAAM)) %>% 
@@ -163,16 +164,16 @@ spread <- read_sf("../alien-species-portal/alienSpecies/inst/extdata/be_alientax
 
 library(leaflet)
 
-if(max(total_by_year_corrected_gem$n) > 500){
+if(max(total_by_year_corrected_gem$cpue) > 500){
   bins <-  c(0, 10, 100, 200, 300, 400, max(total_by_year_corrected_gem$n))
-  labels <- c("<10", "11-100", "101-200", "201-300", "300-400", paste0("401-",  max(total_by_year_corrected_gem$n)))
+  labels <- c("<10", "11-100", "101-200", "201-300", "300-400", paste0("401-",  max(total_by_year_corrected_gem$cpue)))
 }else{
   bins <-  c(0, 10, 100, 200, 300, 400, 500)
   labels <- c("<10", "11-100", "101-200", "201-300", "301-400", "401-500")
 }
 
 pal <- colorBin(palette = "RdYlGn",
-                domain = as.integer(total_by_year_corrected_gem$n),
+                domain = as.integer(total_by_year_corrected_gem$cpue),
                 bins = bins,
                 pretty = TRUE,
                 na.color = "#808080",
