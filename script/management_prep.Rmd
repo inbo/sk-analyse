@@ -30,8 +30,10 @@ gbif_download <- occ_download_get(gbif_downloadKey,
                                   path = tempdir(), 
                                   overwrite = TRUE)
 
-cleanData <- occ_download_import(x = gbif_download) %>% 
+rawData <- occ_download_import(x = gbif_download) %>% 
   mutate(gbifID = as.double(gbifID))
+
+summary(rawData$year)
 ```
 
 ```{r get verbatim data, include=FALSE}
@@ -124,16 +126,17 @@ locality_output <- rbind(localities_until_2018, localities_post_2018)
 ```
 
 ```{r merge with cleandata, include=FALSE}
-cleanData <- cleanData %>% 
+cleanData <- rawData %>% 
   select(-lifeStage, -verbatimLocality) %>% 
-  left_join(lifeStage_output) %>% 
-  left_join(locality_output)
+  left_join(lifeStage_output, by = "gbifID") %>% 
+  left_join(locality_output, by = "gbifID") 
 ```
 
 ```{r redetermine an event}
 cleanData <- cleanData %>% 
   group_by(eventDate, locationID) %>% 
-  mutate(eventID = uuid::UUIDgenerate())
+  mutate(eventID = uuid::UUIDgenerate()) %>% 
+  ungroup()
 ```
 
 ```{r data cleaning, include=FALSE}
@@ -204,12 +207,20 @@ cleanData <- cleanData %>%
   left_join(locations)
 ```
 
-```{r add n_fuiken}
+Om de CPUE te kunnen berekenen hebben we het aantal fuiken nodig. 
+In de post 2018 dataset zit deze info vervat in de kolom sampleSizeUnit en sampleSizeValue. 
+Terwijl in de pre 2018 dataset deze info vervat zit in de kolom verbatimLocality. 
+Onderstaande code haalt deze info uit de 2 datasets.
+
+```{r add n_fuiken until 2018}
+table(cleanData$sampleSizeUnit, useNA = "ifany")
+
 met_fuiknr_1 <- cleanData %>% 
-  filter(locality != "") %>% 
+  filter(verbatimLocality != "", 
+         sampleSizeUnit == "") %>%
   mutate(fuiknr = as.numeric(gsub(pattern = "Fuik ",
                                   replacement = "",
-                                  locality)),
+                                  verbatimLocality)),
          fuiknr = case_when(gbifID == 1135634678 ~ 3, # fuiknr zonder spatie
                             TRUE ~ fuiknr)) 
 
@@ -233,9 +244,29 @@ zndr_fuiknr <- rbind(zndr_fuiknr_1, zndr_fuiknr_2) %>%
   group_by(eventID) %>% 
   summarise(n_fuiken = n())
 
-n_fuiken <- rbind(met_fuiknr_2, zndr_fuiknr) %>% 
+n_fuiken_until_2018 <- rbind(met_fuiknr_2, zndr_fuiknr) %>% 
   group_by(eventID) %>% 
   summarise(n_fuiken = max(n_fuiken, na.rm = TRUE))
+```
+
+```{r add n_fuiken post 2018}
+table(cleanData$sampleSizeUnit)
+
+n_fuiken_post_2018 <- cleanData %>% 
+  filter(sampleSizeUnit != "", 
+         !eventID %in% n_fuiken_until_2018$eventID) %>% 
+  mutate(n_fuiken = case_when(sampleSizeUnit == "fyke" ~ sampleSizeValue * 1,
+                              sampleSizeUnit == "paired fyke" ~ sampleSizeValue * 1,
+                              sampleSizeUnit == "single fyke" ~ sampleSizeValue * 0.5,
+                              TRUE ~ sampleSizeValue)) %>% 
+  group_by(eventID) %>% 
+  summarise(n_fuiken = max(n_fuiken, na.rm = TRUE))
+```
+
+```{r}
+n_distinct(cleanData$eventID) == nrow(n_fuiken_post_2018) + nrow(n_fuiken_until_2018)
+
+n_fuiken <- rbind(n_fuiken_post_2018, n_fuiken_until_2018)
 
 cleanData <- cleanData %>% 
   left_join(n_fuiken, by = "eventID")
