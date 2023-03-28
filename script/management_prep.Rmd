@@ -2,7 +2,11 @@
 library(rgbif)
 library(geojsonsf)
 library(sf)
-library(tidyverse)
+library(dplyr)
+library(readr)
+library(stringr)
+library(tidyr)
+library(uuid)
 ```
 
 ```{r get credentials, include=FALSE}
@@ -49,10 +53,10 @@ verbatimData <- read.table(file = verbatimFile, sep = "\t", header = TRUE)
 ```{r mapping until 2018, include=FALSE}
 verbatimData_until_2018 <- verbatimData %>% 
   filter(datasetName == "Invasive species - American bullfrog (Lithobates catesbeiana) in Flanders, Belgium") %>% 
-  select(gbifID, lifeStage, verbatimLocality)
+  dplyr::select(gbifID, lifeStage, verbatimLocality)
 
 lifeStages_until_2018 <- verbatimData_until_2018 %>% 
-  select(gbifID, lifeStage) %>% 
+  dplyr::select(gbifID, lifeStage) %>% 
   separate(lifeStage, 
            sep = ";",
            into = c("stage1",
@@ -75,7 +79,7 @@ lifeStages_until_2018 <- verbatimData_until_2018 %>%
   pivot_longer(cols = contains("stage"),
                names_to = "lifestage_nr",
                values_to = "lifeStage") %>% 
-  select(-lifestage_nr) %>% 
+  dplyr::select(-lifestage_nr) %>% 
   mutate(lifeStage = str_remove(lifeStage, " "),
          lifeStage = str_remove(lifeStage, "lenght:")) %>% 
   separate(lifeStage, sep = ":",
@@ -96,23 +100,23 @@ lifeStages_until_2018 <- verbatimData_until_2018 %>%
 table(lifeStages_until_2018$lifeStage, useNA = "ifany")
 
 localities_until_2018 <- verbatimData_until_2018 %>% 
-  select(gbifID, verbatimLocality)
+  dplyr::select(gbifID, verbatimLocality)
 ```
 
 ```{r mapping post 2018, include=FALSE}
 verbatimData_post_2018 <- verbatimData %>% 
   filter(datasetName == "Invasive species - American bullfrog (Lithobates catesbeianus) in Flanders, Belgium (post 2018)") %>% 
-  select(gbifID, lifeStage, verbatimLocality, individualCount)
+  dplyr::select(gbifID, lifeStage, verbatimLocality, individualCount)
 
 lifeStages_post_2018 <- verbatimData_post_2018 %>% 
-  select(gbifID, lifeStage, n = individualCount) %>% 
+  dplyr::select(gbifID, lifeStage, n = individualCount) %>% 
   mutate(lifeStage = case_when(grepl("larvae", lifeStage) ~ "larvae",
                                grepl("metamorph", lifeStage) ~ "juvenile",
                                grepl("adult", lifeStage) ~ "adult",
                                TRUE ~ lifeStage))
 
 localities_post_2018 <- verbatimData_post_2018 %>% 
-  select(gbifID, verbatimLocality)
+  dplyr::select(gbifID, verbatimLocality)
 
 table(verbatimData_post_2018$lifeStage,lifeStages_post_2018$lifeStage, useNA = "ifany")
 table(verbatimData_post_2018$verbatimLocality, useNA = "ifany")
@@ -127,7 +131,7 @@ locality_output <- rbind(localities_until_2018, localities_post_2018)
 
 ```{r merge with cleandata, include=FALSE}
 cleanData <- rawData %>% 
-  select(-lifeStage, -verbatimLocality) %>% 
+  dplyr::select(-lifeStage, -verbatimLocality) %>% 
   left_join(lifeStage_output, by = "gbifID") %>% 
   left_join(locality_output, by = "gbifID") 
 ```
@@ -171,7 +175,7 @@ locations <- cleanData %>%
 locations_missing_coords <- locations %>% 
   filter(is.na(decimalLatitude) | is.na(decimalLongitude)) %>% 
   left_join(cleanData, by = "locationID") %>% 
-  select(locationID, decimalLatitude.y, decimalLongitude.y)
+  dplyr::select(locationID, decimalLatitude.y, decimalLongitude.y)
 
 write_csv(locations_missing_coords, "./interim/locations_missing_coords.csv")
 
@@ -199,7 +203,7 @@ locations <- locations_intersect %>%
                                NISCODE > 20000 ~ "Vlaams-Brabant",
                                NISCODE > 10000 ~ "Antwerpen",
                                TRUE ~ NA_character_)) %>% 
-  select(locationID, NISCODE, NAAM, provincie)
+  dplyr::select(locationID, NISCODE, NAAM, provincie)
 
 locations <- st_set_geometry(locations, NULL)
 
@@ -226,7 +230,7 @@ met_fuiknr_1 <- cleanData %>%
 
 zndr_fuiknr_2 <- met_fuiknr_1 %>% 
   filter(is.na(fuiknr)) %>% 
-  select(-fuiknr)
+  dplyr::select(-fuiknr)
 
 met_fuiknr_2 <- met_fuiknr_1 %>% 
   filter(!is.na(fuiknr)) %>% 
@@ -274,7 +278,7 @@ cleanData <- cleanData %>%
 
 ```{r select necessary columns}
 cleanData <- cleanData %>% 
-  select(gbifID,
+  dplyr::select(gbifID,
          year,
          individualCount = n,
          lifeStage,
