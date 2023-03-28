@@ -5,6 +5,7 @@ on:
   push: 
    branches:
      - main
+     - '26-automate-management-prep'
    paths:
      - darwincore/processed/**
   
