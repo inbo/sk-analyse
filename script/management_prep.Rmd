@@ -13,6 +13,10 @@ library(uuid)
 gbif_email <- Sys.getenv("email")
 gbif_pwd <- Sys.getenv("gbif_pwd")
 gbif_user <- Sys.getenv("gbif_user")
+
+gbif_email
+gbif_pwd
+gbif_user
 ```
 
 Currently there is only 1 dataset but in the future there will be 2
