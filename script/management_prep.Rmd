@@ -13,10 +13,6 @@ library(uuid)
 gbif_email <- Sys.getenv("email")
 gbif_pwd <- Sys.getenv("gbif_pwd")
 gbif_user <- Sys.getenv("gbif_user")
-
-print(gbif_email)
-print(gbif_pwd)
-print(gbif_user)
 ```
 
 Currently there is only 1 dataset but in the future there will be 2
@@ -30,7 +26,10 @@ gbif_downloadKey <- occ_download(pred_in("datasetKey", datasetkeys),
                                  pred("taxonKey", taxonkey),
                                  user = gbif_user,
                                  pwd = gbif_pwd,
-                                 email = gbif_email)
+                                 email = gbif_email,
+                                 curlopts = list(verbose = TRUE,
+                                                 http_version = 2,
+                                                 forbid_reuse = TRUE))
 
 occ_download_wait(gbif_downloadKey)
 # Execute download request
