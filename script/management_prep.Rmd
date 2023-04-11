@@ -31,7 +31,10 @@ gbif_downloadKey <- occ_download(pred_in("datasetKey", datasetkeys),
                                                  http_version = 2,
                                                  forbid_reuse = TRUE))
 
-occ_download_wait(gbif_downloadKey)
+occ_download_wait(gbif_downloadKey,
+                  curlopts = list(verbose = TRUE,
+                                                 http_version = 2,
+                                                 forbid_reuse = TRUE))
 # Execute download request
 gbif_download <- occ_download_get(gbif_downloadKey, 
                                   path = tempdir(), 
