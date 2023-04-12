@@ -58,7 +58,7 @@ jobs:
           source("script/install_packages_management.R")
         shell: Rscript {0}
         
-      - name: DWC mapping
+      - name: Management prep
         run: |
           source("script/run_management_prep.R")
         shell: Rscript {0}
