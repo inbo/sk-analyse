@@ -5,16 +5,19 @@
 
 # occ.df <- read.csv("BF_Occurrences20231103.csv", header=T, sep=';')
 
-install.packages("Rtools")
 library(devtools)
 
-# install_github("bobverity/RgeoProfile")
+if(!"RgeoProfile" %in% installed.packages()){
+  install_github("bobverity/RgeoProfile")
+}
+
 library(RgeoProfile)
 library(ggmap)
-??RgeoProfile
 
+# Get credentials ####
+# If needed create .renviron file containing api_key = "<your api key>"
 
-
+api_key <- Sys.getenv("api_key")
 
 # full example of Rgeoprofile 2.1.0 workflow, illustrating all functions
 # for details, see help for individual functions
@@ -57,11 +60,29 @@ geoPlotSigma(params = p, mcmc = m)
 
 
 # plot profile on map
+register_google(key = "api_key") #insert API-key
 
-install_github("dkahle/ggmap")
-library(ggmap)
-register_google(key ="") #insert API-key
+library(leaflet)
+library(leaflet.extras)
+library(sf)
 
+source <- as.data.frame(s) %>% 
+  st_as_sf(coords = c("longitude", "latitude"))
 
-mapGP <- geoPlotMap(params = p, data = d, source = s, surface = m$geoProfile)
+#geoPlotMap(params = p, data = d, source = s, surface = m$geoProfile)
+
+data <- as.data.frame(d) %>% 
+  st_as_sf(coords = c("longitude", "latitude"))
+
+mapGP <- leaflet() %>% 
+  addTiles() %>% 
+  addHeatmap(
+    data = source,
+    blur = 25, 
+    max = 1, 
+    radius = 20
+  ) %>% 
+  addCircles(data = source)
+  addCircles(data = data)
+
 mapGP
