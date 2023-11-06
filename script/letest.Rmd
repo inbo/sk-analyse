@@ -26,6 +26,7 @@ sens_adult <- 0.91
 
 # 1st Attempt
 Analysis per fyke
+Eerst eenheid creeëren in definitie van een hoek.
 ```{r}
 afvangsten_per_fuik_int <- afvangsten_per_fuik %>% 
   mutate(hoek2 = case_when(Hoek == "00°" ~ "00°",
@@ -42,6 +43,11 @@ afvangsten_per_fuik_int <- afvangsten_per_fuik %>%
          lg_larven = sum(L1, L2, na.rm = TRUE)) %>% 
   ungroup()
 
+```
+
+Dan vijvers opdelen in voortplantingsvijvers (Meer dan 100 larven gevangen in totaal), uitwijkvijvers (voornamelijk juvenielen en adulten), en absent
+OPMERKING: volgens mij bekijken we de vangsten in verschillen jaren. Dit moet alleen in het eerste jaar bekeken worden
+```{r}
 pond_classification <- afvangsten_per_fuik_int %>% 
   group_by(locationID, Locatie) %>% 
   summarise(larven = sum(L00, L0, L1, L2, na.rm = TRUE),
@@ -51,12 +57,16 @@ pond_classification <- afvangsten_per_fuik_int %>%
   mutate(classification = case_when(larven >= 100 ~ "Breeding", 
                                     larven < 100 & juvenielen >= 1 || adulten >= 1 ~ "Refuge",
                                     TRUE ~ "Absent"))
+```
 
+De vijver-classificaties samenvoegen met de rest van de dataset
+```{r}
 afvangsten_per_fuik_int <- afvangsten_per_fuik_int %>% 
   left_join(pond_classification) %>% 
   filter(classification != "Absent")
 ```
-
+Alleen rekening houden met de eerste vangst, indien meerdere opeenvolgende jaren afgevangen wordt.
+OPMERKING: deze stap moet dus eerder gebeuren
 ```{r}
 first_catch <- afvangsten_per_fuik_int %>% 
   group_by(locationID) %>% 
@@ -69,6 +79,10 @@ first_catch <- afvangsten_per_fuik_int %>%
 
 table(pond_classification$classification)
 
+```
+
+Totale impact per vijver berekenen
+```{r}
 # left_join(first_catch) %>% 
 #   mutate(week = format(Datum, "%W")) %>% 
 #   filter(Jaar == first_jaar,
@@ -89,7 +103,9 @@ test <- afvangsten_per_fuik_int %>%
             mean_total_impact = total_impact/vangsten) %>% 
   ungroup() %>% 
   filter(!is.na(hoek2))
+```
 
+```{r}
 stats <- test %>% 
   group_by(classification, hoek2) %>% 
   summarise(mean = mean(total_impact, na.rm = TRUE),
