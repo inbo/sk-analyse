@@ -1,0 +1,215 @@
+```{r libraries}
+library(tidyverse)
+library(rstatix)
+```
+
+```{r read data}
+afvangsten_per_fuik <- read_csv("interim/afvangsten_per_fuik.csv")
+```
+
+Door de onderstaande waardes aan te passen kan je de sensitiviteit van een levensstadium aanpassen. In eerste instantie werden de waardes volgens [Govindarajulu et. al. 2005](https://esajournals.onlinelibrary.wiley.com/doi/epdf/10.1890/05-0486) gehanteerd.
+
+sens_larven_sm <- 0.21
+sens_larven_lg <- 0.39
+sens_juveniel <- 1.7
+sens_adult <- 0.91
+
+Enkel de sensitiviteit van zomervangsten werd gehanteerd omdat er in vlaanderen 
+geen wintervangsten worden uitgevoerd. 
+
+```{r set Sensitivity values}
+sens_larven_sm <- 0.21
+sens_larven_lg <- 0.39
+sens_juveniel <- 1.7
+sens_adult <- 0.91
+```
+
+# 1st Attempt
+Analysis per fyke
+Eerst eenheid creeëren in definitie van een hoek.
+```{r}
+afvangsten_per_fuik_int <- afvangsten_per_fuik %>% 
+  mutate(hoek2 = case_when(Hoek == "00°" ~ "00°",
+                           Hoek == "180" ~ "90°",
+                           Hoek == "45" ~ "45°",
+                           Hoek == "45°" ~ "45°",
+                           Hoek == "90°" ~ "90°",
+                           TRUE ~ NA_character_)) %>% 
+  filter(!is.na(hoek2)) %>% 
+  group_by(eventID, fuikNr, fuiktype, hoek2) %>% 
+  mutate(juveniel_fuik = sum(M1, M2, na.rm = TRUE),
+         adult_fuik = sum(AM, AV, na.rm = TRUE),
+         sm_larven = sum(L00, L0, na.rm = TRUE),
+         lg_larven = sum(L1, L2, na.rm = TRUE)) %>% 
+  ungroup()
+
+```
+
+Dan vijvers opdelen in voortplantingsvijvers (Meer dan 100 larven gevangen in totaal), uitwijkvijvers (voornamelijk juvenielen en adulten), en absent
+OPMERKING: volgens mij bekijken we de vangsten in verschillen jaren. Dit moet alleen in het eerste jaar bekeken worden
+```{r}
+pond_classification <- afvangsten_per_fuik_int %>% 
+  group_by(locationID, Locatie) %>% 
+  summarise(larven = sum(L00, L0, L1, L2, na.rm = TRUE),
+            juvenielen = sum(juveniel_fuik, na.rm = TRUE),
+            adulten = sum(adult_fuik, na.rm = TRUE),
+            jaren = n_distinct(Jaar)) %>% 
+  mutate(classification = case_when(larven >= 100 ~ "Breeding", 
+                                    larven < 100 & juvenielen >= 1 || adulten >= 1 ~ "Refuge",
+                                    TRUE ~ "Absent"))
+```
+
+De vijver-classificaties samenvoegen met de rest van de dataset
+```{r}
+afvangsten_per_fuik_int <- afvangsten_per_fuik_int %>% 
+  left_join(pond_classification) %>% 
+  filter(classification != "Absent")
+```
+Alleen rekening houden met de eerste vangst, indien meerdere opeenvolgende jaren afgevangen wordt.
+OPMERKING: deze stap moet dus eerder gebeuren
+```{r}
+first_catch <- afvangsten_per_fuik_int %>% 
+  group_by(locationID) %>% 
+  mutate(first_jaar = min(Jaar, na.rm = TRUE)) %>% 
+  filter(Jaar == first_jaar) %>% 
+  mutate(week = format(Datum, "%W")) %>% 
+  ungroup() %>% 
+  group_by(locationID, first_jaar) %>% 
+  summarise(first_week = min(week, na.rm = TRUE)) 
+
+table(pond_classification$classification)
+
+```
+
+Totale impact per vijver berekenen
+```{r}
+# left_join(first_catch) %>% 
+#   mutate(week = format(Datum, "%W")) %>% 
+#   filter(Jaar == first_jaar,
+#          week == first_week) 
+
+test <- afvangsten_per_fuik_int %>% 
+  mutate(impact_larven_sm = sm_larven * sens_larven_sm,
+         impact_larven_lg = lg_larven * sens_larven_lg,
+         impact_juveniel = juveniel_fuik * sens_juveniel,
+         impact_adult = adult_fuik * sens_adult) %>% 
+  group_by(locationID, Jaar, hoek2, classification) %>% 
+  summarise(total_impact = sum(impact_larven_sm, 
+                            impact_larven_lg, 
+                            impact_juveniel, 
+                            impact_adult, 
+                            na.rm = TRUE),
+            vangsten = n_distinct(eventID),
+            mean_total_impact = total_impact/vangsten) %>% 
+  ungroup() %>% 
+  filter(!is.na(hoek2))
+```
+
+```{r}
+stats <- test %>% 
+  group_by(classification, hoek2) %>% 
+  summarise(mean = mean(total_impact, na.rm = TRUE),
+            SE = sd(total_impact, na.rm = TRUE),
+            SE_min = mean - SE,
+            SE_plus = mean + SE)
+  
+summary(test$impact_larven_sm)
+summary(test$impact_larven_lg)
+summary(test$impact_juveniel)
+summary(test$impact_adult)
+summary(test$total_impact)
+
+table(test$hoek2, test$classification, useNA = "ifany")
+```
+
+```{r}
+ggplot(data = test, aes(x = hoek2, y = mean_total_impact, fill = classification)) + 
+  geom_bar(stat = "identity", position = "dodge") +
+  scale_y_log10()
+
+ggplot(data = test, aes(x = hoek2, y = mean_total_impact, fill = classification)) + 
+  geom_boxplot() +
+  scale_y_log10()
+  
+
+table(test$classification, test$hoek2, useNA = "ifany")
+```
+
+```{r}
+test %>% kruskal_test(total_impact ~ classification)
+
+test %>% 
+  filter(classification == "Breeding") %>% 
+  kruskal_test(total_impact ~ hoek2)
+
+test %>% 
+  filter(classification == "Breeding") %>% 
+  wilcox_test(total_impact ~ hoek2, p.adjust.method = "bonferroni")
+
+test %>% 
+  filter(classification == "Refuge") %>% 
+  kruskal_test(total_impact ~ hoek2)
+
+test %>% 
+  filter(classification == "Refuge") %>% 
+  wilcox_test(total_impact ~ hoek2, p.adjust.method = "bonferroni")
+```
+
+# 2nd attempt
+See https://docs.google.com/document/d/1bcLpb_rSIfZrgWNK1brZe_JcewH_R-4ypNwtTs1h3mY/edit
+```{r}
+first_catch <- afvangsten_per_fuik_int %>% 
+  mutate(week = format(Datum, "%W")) %>% 
+  ungroup() %>% 
+  group_by(locationID, Jaar) %>% 
+  summarise(first_week = min(week, na.rm = TRUE))
+
+afvangsten_pond_stage_angle <- afvangsten_per_fuik_int %>% 
+  mutate(week = format(Datum, "%W")) %>% 
+  left_join(first_catch) %>% 
+  group_by(locationID, Locatie, hoek2, classification, Jaar, week) %>% 
+  summarise(sm_larven = sum(L0, L00, na.rm = TRUE),
+            lg_larven = sum(L1, L2, na.rm = TRUE),
+            juveniel = sum(M1, M2, na.rm = TRUE),
+            adult = sum(AV, AM, na.rm = TRUE),
+            n_fuiken = n(),
+            n_dagen = n_distinct(Datum),
+            fuik_dagen = n_fuiken/n_dagen) %>% 
+  ungroup() %>% 
+  rowwise() %>% 
+  mutate(impact_larven_sm = (sm_larven/fuik_dagen) * sens_larven_sm,
+         impact_larven_lg = (lg_larven/fuik_dagen) * sens_larven_lg,
+         impact_juveniel = (juveniel/fuik_dagen) * sens_juveniel,
+         impact_adult = (adult/fuik_dagen) * sens_adult,
+         total_impact = sum(impact_larven_sm, impact_larven_lg, impact_juveniel, impact_adult)) %>% ungroup()
+```
+
+```{r graphs}
+afvangsten_pond_stage_angle %>% ggplot(aes(x = total_impact, fill = classification)) +
+  geom_histogram(position = "dodge")
+
+ggplot(data = afvangsten_pond_stage_angle, aes(x = hoek2, y = total_impact, fill = classification)) + 
+  geom_boxplot() +
+  scale_y_sqrt()
+```
+
+```{r}
+afvangsten_pond_stage_angle %>% kruskal_test(total_impact ~ classification)
+
+afvangsten_pond_stage_angle %>% 
+  filter(classification == "Breeding") %>% 
+  kruskal_test(total_impact ~ hoek2)
+
+afvangsten_pond_stage_angle %>% 
+  filter(classification == "Breeding") %>% 
+  wilcox_test(total_impact ~ hoek2, p.adjust.method = "bonferroni")
+
+afvangsten_pond_stage_angle %>% 
+  filter(classification == "Refuge") %>% 
+  kruskal_test(total_impact ~ hoek2)
+
+afvangsten_pond_stage_angle %>% 
+  filter(classification == "Refuge") %>% 
+  wilcox_test(total_impact ~ hoek2, p.adjust.method = "bonferroni")
+```
+
