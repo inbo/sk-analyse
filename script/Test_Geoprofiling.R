@@ -69,7 +69,14 @@ library(sf)
 source <- as.data.frame(s) %>% 
   st_as_sf(coords = c("longitude", "latitude"))
 
-#geoPlotMap(params = p, data = d, source = s, surface = m$geoProfile)
+source("./script/geoPlotMap2.R")
+test <- geoPlotMap2(params = p, data = d, source = s, surface = m$geoProfile, 
+            palette = "RdBu")
+
+test <- test %>%
+  addTiles()
+
+print(test)
 
 data <- as.data.frame(d) %>% 
   st_as_sf(coords = c("longitude", "latitude"))
