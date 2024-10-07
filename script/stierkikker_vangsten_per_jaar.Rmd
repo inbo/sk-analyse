@@ -1,0 +1,23 @@
+```{r}
+library(lubridate)
+library(tidyverse)
+```
+
+```{r}
+afvangsten_per_vangst <- read_csv("./interim/afvangsten_per_vangst.csv")
+```
+
+```{r}
+afvangsten_per_jaar <- afvangsten_per_vangst %>%
+  rename(totaal_per_vangst = totaal_vangst) %>% 
+  mutate(jaar = year(Datum)) %>%
+  group_by(jaar) %>%
+  summarise(aantal_vangsten = n(),
+            totaal_vangst = sum(totaal_per_vangst),
+            aantal_locaties = n_distinct(Locatie),
+            aantal_acties = n_distinct(eventID),
+            max_vangst = max(totaal_per_vangst),
+            mean_vangst = mean(totaal_per_vangst)) %>% 
+  write_csv("./interim/stierkikker_vangsten_per_jaar.csv")
+```
+
