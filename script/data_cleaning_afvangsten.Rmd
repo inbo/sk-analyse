@@ -605,18 +605,18 @@ dups <- afvangsten_vr_gbif %>%
   filter(n > 1) %>% 
   ungroup() 
 
-ids <- unique(dups$eventID)
-
-for(i in ids){
-  afvangsten_vr_gbif <- afvangsten_vr_gbif %>% 
-    filter(eventID != i)
-}
-
-%>% 
-  group_by(eventID, Datum, lifestage, Jaar, Locatie, locationID, Tijdstempel,
-           actie, fuiklengte, `Net verhoogd?`, Type, lat, long, no_fuiken, fuikNr, Opmerkingen, Hoek,
-           fuiktype, scientificname, taxonkey, recordedBy, identifiedBy, occurrenceID) %>% 
-  summarise(individualCount = min(individualCount, na.rm = TRUE))
+# ids <- unique(dups$eventID)
+# 
+# for(i in ids){
+#   afvangsten_vr_gbif <- afvangsten_vr_gbif %>% 
+#     filter(eventID != i)
+# }
+# 
+# %>% 
+#   group_by(eventID, Datum, lifestage, Jaar, Locatie, locationID, Tijdstempel,
+#            actie, fuiklengte, `Net verhoogd?`, Type, lat, long, no_fuiken, fuikNr, Opmerkingen, Hoek,
+#            fuiktype, scientificname, taxonkey, recordedBy, identifiedBy, occurrenceID) %>% 
+#   summarise(individualCount = min(individualCount, na.rm = TRUE))
 
 unis <- afvangsten_vr_gbif %>% 
   filter(n == 1)
