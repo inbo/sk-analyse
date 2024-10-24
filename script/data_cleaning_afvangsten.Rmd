@@ -43,7 +43,7 @@ rawdata <- read_sheet(Sys.getenv("SK_FORMS"),
 ```
 
 ```{r get data - additional data}
-vijvers <- read_sheet(Sys.getenv("SK_FORMS"),
+vijvers_int <- read_sheet(Sys.getenv("SK_FORMS"),
                       sheet = "Andere Vijvers") %>% 
   filter(!is.na(UUID)) %>% 
   mutate(Locatie = tolower(Locatie)) %>% 
@@ -51,7 +51,7 @@ vijvers <- read_sheet(Sys.getenv("SK_FORMS"),
                       "long"),
            ", ") %>% 
   mutate(lat = as.numeric(lat),
-         long = as.numeric(long))
+         long = as.numeric(long)) 
 
 bijvangst <- read_sheet(Sys.getenv("BYCATCH"),
                         sheet = "Blad1",
@@ -64,8 +64,30 @@ uitvoerders <- read_sheet(Sys.getenv("SK_FORMS"),
 ```
 
 ## Vijvers
-```{r koppeling met blauwe-laag}
-#nog uit te werken
+```{r vervaging naar 1x1km EEA Grid}
+eea_grid <- sf::st_read("https://github.com/inbo/aspbo/raw/refs/heads/uat/data/output/UAT_processing/grid/utm1_bel_with_regions.gpkg", layer = "utm1_bel_with_regions") %>% 
+  select(CELLCODE, geom) %>% 
+  sf::st_transform(4326) %>% 
+  mutate(geometry = geom) %>%
+  sf::st_centroid() %>% 
+  mutate(lat = sf::st_coordinates(geom)[,2],
+         long = sf::st_coordinates(geom)[,1]) %>% 
+  sf::st_drop_geometry(geom) %>%
+  sf::st_as_sf() 
+
+vijvers_zndr_coordinaten <- vijvers_int %>% 
+  filter(is.na(lat) | is.na(long)) %>% 
+  write_csv("./interim/vijvers_zndr_coordinaten.csv")
+
+vijvers_int <- vijvers_int %>% 
+  filter(!UUID %in% vijvers_zndr_coordinaten$UUID) %>%
+  sf::st_as_sf(coords = c("long", "lat"), crs = 4326)
+
+if(sf::st_crs(eea_grid) == sf::st_crs(vijvers_int)){
+  vijvers <- sf::st_join(vijvers_int, eea_grid) %>% 
+    sf::st_drop_geometry() %>% 
+    select(-CELLCODE)
+}
 ```
 
 ## Combine datasets
