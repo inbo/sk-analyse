@@ -589,7 +589,8 @@ afvangsten_vr_gbif <- afvangsten_per_fuik %>%
          long = long.x,
          individualCount = individualCount.x,
          Hoek = Hoek.x,
-         Opmerkingen = Opmerkingen.x) %>%
+         Opmerkingen = Opmerkingen.x,
+         Tijdstempel = Tijdstempel.x) %>%
   dplyr::select(-lat.y,
                 -long.y,
                 -individualCount.y,
@@ -777,12 +778,14 @@ data_bijvangsten <- data %>%
          long = long.x,
          individualCount = individualCount.x,
          Hoek = Hoek.x,
-         Opmerkingen = Opmerkingen.x) %>%
+         Opmerkingen = Opmerkingen.x,
+         Tijdstempel = Tijdstempel.x) %>%
   dplyr::select(-lat.y,
                 -long.y,
                 -individualCount.y,
                 -Hoek.y,
-                -Opmerkingen.y)
+                -Opmerkingen.y,
+                -Tijdstempel.y)
 
 species <- unique(data_bijvangsten$scientificname)
 
