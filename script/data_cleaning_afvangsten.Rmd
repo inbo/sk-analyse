@@ -570,8 +570,7 @@ afvangsten_vr_gbif <- afvangsten_per_fuik %>%
          identifiedBy = Organisation) %>% 
   filter(!is.na(individualCount)) %>% 
   dplyr::select(-Organisation) %>% 
-  tidylog::left_join(afvangsten_vr_gbif_old, by = c("Tijdstempel" = "Tijdstempel",
-                                                    "Datum" = "Datum",
+  tidylog::left_join(afvangsten_vr_gbif_old, by = c("Datum" = "Datum",
                                                     "Locatie" = "Locatie",
                                                     "actie" = "actie",
                                                     "fuiklengte" = "fuiklengte",
@@ -642,6 +641,17 @@ events2 <- afvangsten_vr_gbif %>%
 
 testthat::expect_true(n_distinct(afvangsten_vr_gbif$occurrenceID) == nrow(afvangsten_vr_gbif))
 testthat::expect_true(n_distinct(afvangsten_vr_gbif$eventID) == nrow(events2))
+```
+
+```{r}
+missing_from_old <- afvangsten_vr_gbif_old %>% 
+  filter(!occurrenceID %in% afvangsten_vr_gbif$occurrenceID) 
+
+missing_from_new <- afvangsten_vr_gbif %>%
+  filter(!occurrenceID %in% afvangsten_vr_gbif_old$occurrenceID)
+
+in_both <- afvangsten_vr_gbif %>% 
+  filter(occurrenceID %in% afvangsten_vr_gbif_old$occurrenceID) 
 ```
 
 ```{r datacleaning - bijvangsten vr gbif}
@@ -749,8 +759,7 @@ data_bijvangsten <- data %>%
   dplyr::select(-Organisation,
                 -fuikNr2,
                 -max_fuikNr) %>% 
-  tidylog::left_join(data_bijvangsten_old, by = c("Tijdstempel" = "Tijdstempel",
-                                                  "Datum" = "Datum",
+  tidylog::left_join(data_bijvangsten_old, by = c("Datum" = "Datum",
                                                   "Locatie" = "Locatie",
                                                   "actie" = "actie",
                                                   "fuiklengte" = "fuiklengte",
