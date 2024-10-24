@@ -43,9 +43,11 @@ rawdata <- read_sheet(Sys.getenv("SK_FORMS"),
 ```
 
 ```{r get data - additional data}
-vijvers_int <- read_sheet(Sys.getenv("SK_FORMS"),
-                      sheet = "Andere Vijvers") %>% 
-  filter(!is.na(UUID)) %>% 
+vijvers_raw <- read_sheet(Sys.getenv("SK_FORMS"),
+                          sheet = "Andere Vijvers") %>% 
+  filter(!is.na(UUID))
+
+vijvers_int <- vijvers_raw %>% 
   mutate(Locatie = tolower(Locatie)) %>% 
   separate(latlong, c("lat", 
                       "long"),
@@ -86,8 +88,13 @@ vijvers_int <- vijvers_int %>%
 if(sf::st_crs(eea_grid) == sf::st_crs(vijvers_int)){
   vijvers <- sf::st_join(vijvers_int, eea_grid) %>% 
     sf::st_drop_geometry() %>% 
-    select(-CELLCODE)
+    select(-CELLCODE) %>% 
+    bind_rows(vijvers_zndr_coordinaten %>% 
+                mutate(lat = NA_real_,
+                       long = NA_real_))
 }
+
+testthat::expect_true(nrow(vijvers) == nrow(vijvers_int) + nrow(vijvers_zndr_coordinaten))
 ```
 
 ## Combine datasets
@@ -165,14 +172,161 @@ data_afvangsten <- data %>%
          -`Eind vangstperiode`,
          -Gebied, 
          -Nummer) %>% 
-  mutate(eventID = paste(Datum, Locatie, sep = "_"))
+  mutate(`Aantal fuiken (Totaal)` = as.numeric(`Aantal fuiken (Totaal)`))
+```
+
+```{r datacleaning: events - long}
+# Selecteer events met Aantal fuiken (Totaal) == 1 & voeg eventID toe
+# Deze events hebben data op meerdere rijen
+# We tellen het aantal fuiken op en voegen eventID toe
+data_afvangsten_long <- data_afvangsten %>% 
+  filter(`Aantal fuiken (Totaal)` == 1) %>% 
+  mutate(eventID = paste(Datum, Locatie, sep = "_")) %>% 
+  group_by(eventID, `Wat wil je melden`) %>%
+  mutate(`Aantal fuiken (Totaal)` = sum(as.numeric(`Aantal fuiken (Totaal)`), na.rm = TRUE)) %>% 
+  ungroup()
+
+# Check of de het max fuiknr groter is dan 1
+# in dit geval is de data geen echte long data en moet aantal fuiken (totaal) herberekend worden
+events_ids <- unique(data_afvangsten_long$eventID)
+
+data_afvangsten_long_checked <- data.frame()
+
+for(e in events_ids){
+  temp <- data_afvangsten_long %>% 
+    filter(eventID == e)
+  
+  fuiktypes <- unique(temp$`Wat wil je melden`)
+  
+  temp_recomb <- data.frame()
+  
+  for(f in fuiktypes){
+    
+    temp_sub <- temp %>% 
+      filter(`Wat wil je melden` == f)
+    
+    # Extract columns with numbers in their name
+    col_names <- names(temp_sub)[grepl("[0-9]", names(temp_sub))]
+    
+    # Drop columns with only NA's from col_names 
+    col_names_no_na <- colnames(temp_sub)[apply(temp_sub, 2, function(x) any(!is.na(x)))]
+    
+    # Extract columns with Fuik in their name
+    col_names_Fuik <- col_names_no_na[grepl("Fuik", col_names_no_na)]
+    
+    # Extract fuik numbers
+    fuiknrs <- unique(as.numeric(gsub(".*?([0-9]+).*", "\\1", col_names_Fuik)))
+    
+    # Herbereken aantal fuiken (totaal) als max(fuiknr) > 1
+    if(max(fuiknrs) > 1){
+      print(e)
+      print(nrow(temp_sub))
+      
+      if(nrow(temp_sub) == 1){
+        # data in 1 rij -> multiply `Aantal fuiken (Totaal)` with max(fuiknr)
+        temp_sub <- temp_sub %>% 
+          filter(eventID == e) %>% 
+          mutate(`Aantal fuiken (Totaal)` = `Aantal fuiken (Totaal)` * max(fuiknrs))
+      }else{
+        # data verspreid over meerdere rijen
+        # iterate accross rows
+        for(i in 1:nrow(temp_sub)){
+          col_names_no_na <- colnames(temp_sub)[apply(temp_sub[i,], 2, function(x) any(!is.na(x)))]
+          # Extract columns with Fuik in their name
+          col_names_Fuik <- col_names_no_na[grepl("Fuik", col_names_no_na)]
+          # Extract fuik numbers
+          fuiknrs <- unique(as.numeric(gsub(".*?([0-9]+).*", "\\1", col_names_Fuik)))
+          
+          if(length(fuiknrs) > 1){
+            print("different fuik numbers in 1 row")
+            temp_sub[i,]$`Aantal fuiken (Totaal)` <- temp_sub[i,]$`Aantal fuiken (Totaal)` + (max(fuiknrs) - 1) 
+          }
+        }
+        
+        # # rowwise sum of fuiknrs + `Aantal fuiken (Totaal)`
+        temp_sub <- temp_sub %>%
+          group_by(eventID, `Wat wil je melden`) %>%
+          mutate(`Aantal fuiken (Totaal)` = max(`Aantal fuiken (Totaal)`, na.rm = TRUE)) %>%
+          ungroup()
+      }
+    }
+    temp_recomb <- bind_rows(temp_recomb, temp_sub)
+  }
+  data_afvangsten_long_checked <- bind_rows(data_afvangsten_long_checked, temp_recomb)
+}
+```
+
+```{r datacleaning: events - wide}
+# Selecteer events met Aantal fuiken (Totaal) != 1 & voeg eventID toe
+# Deze events hebben data verspreid over meerdere kolommen
+data_afvangsten_wide <- data_afvangsten %>% 
+  filter(`Aantal fuiken (Totaal)` != 1) %>% 
+  mutate(eventID = paste(Datum, Locatie, sep = "_")) %>% 
+  group_by(eventID) %>% 
+  add_tally() %>%
+  ungroup()
+
+# Alle data van het event staat op 1 rij
+data_afvangsten_wide_single <- data_afvangsten_wide %>%
+  filter(n == 1) %>% 
+  select(-n)
+
+# Data van het event staat verspreid over meerdere rijen
+# add column to flag whether or not `Aantal fuiken (Totaal)` > 12
+data_afvangsten_wide_multiple <- data_afvangsten_wide %>%
+  filter(n > 1) %>% 
+  group_by(eventID) %>%
+  mutate(flag = `Aantal fuiken (Totaal)` > 12) %>% 
+  ungroup()
+
+
+table(data_afvangsten_wide_multiple$flag)
+
+# Type 1: Meer dan 12 fuiken
+# De app laat een maximum van 12 fuiken toe
+# Als er meer dan 12 fuiken zijn, dan is de data vermoedelijk verspreid over meerdere rijen
+# `Aantal fuiken (Totaal)` is dan de som van de `Aantal fuiken (Totaal)` van de verschillende rijen
+data_afvangsten_wide_multiple_1 <- data_afvangsten_wide_multiple %>% 
+  filter(eventID %in% data_afvangsten_wide_multiple$eventID[data_afvangsten_wide_multiple$flag]) %>% 
+  group_by(eventID, `Wat wil je melden`) %>%
+  mutate(`Aantal fuiken (Totaal)` = sum(`Aantal fuiken (Totaal)`, na.rm = TRUE)) %>% 
+  ungroup() %>% 
+  select(-flag)
+
+# Type 2: Minder dan 12 fuiken
+# Vermoedelijk gaat het hier over een effectieve fout in de data
+# In dit geval pakken we laatste versie van de data obv de tijdStempel
+data_afvangsten_wide_multiple_2 <- data_afvangsten_wide_multiple %>% 
+  filter(eventID %in% data_afvangsten_wide_multiple$eventID[data_afvangsten_wide_multiple$flag == FALSE]) %>% 
+  group_by(eventID, `Wat wil je melden`) %>% 
+  filter(Tijdstempel == max(Tijdstempel)) %>%
+  ungroup() %>% 
+  select(-flag)
+
+data_afvangsten_wide_multiple_recomb <- rbind(data_afvangsten_wide_multiple_1,
+                                              data_afvangsten_wide_multiple_2)
+
+# combineer data
+data_afvangsten_wide <- bind_rows(data_afvangsten_wide_single,
+                                  data_afvangsten_wide_multiple_recomb)
+
+table(data_afvangsten_wide$eventID, useNA = "ifany")
+```
+
+
+
+```{r datacleaning: events - combine}
+# Combineer data
+data_afvangsten <- bind_rows(data_afvangsten_wide,
+                             data_afvangsten_long_checked) %>% 
+  select(-n)
 ```
 
 ```{r datacleaning - eventstats}
 events <- data_afvangsten %>% 
   group_by(eventID, `Wat wil je melden`) %>% 
   summarise(max_fuikNr = max(as.numeric(`Aantal fuiken (Totaal)`), na.rm = TRUE),
-            no_fuiken = sum(as.numeric(`Aantal fuiken (Totaal)`), na.rm = TRUE))
+            no_fuiken = max(as.numeric(`Aantal fuiken (Totaal)`), na.rm = TRUE))
 ```
 
 ```{r datacleaning - afvangsten per fuik}
@@ -227,10 +381,113 @@ afvangsten_per_fuik <- data_afvangsten %>%
          correctie_factor = 1,
          larven_corrected = larven_fuik*correctie_factor,
          totaal_fuik_corrected = totaal_fuik*correctie_factor) %>% 
+  ungroup() %>% 
   select(-`Aantal fuiken (Totaal)`) %>% 
   arrange(Datum, Locatie, fuikNr) %>% 
   mutate(max_fuikNr = case_when(is.infinite(max_fuikNr) ~ fuikNr2,
-                                TRUE ~ max_fuikNr))
+                                TRUE ~ max_fuikNr)) %>% 
+  group_by(eventID, fuiktype) %>% 
+  mutate(max_fuikNr = max(max_fuikNr, na.rm = TRUE),
+         no_fuiken = max(no_fuiken, na.rm = TRUE))
+
+# filter events with max_fuikNr > 1 & with only fuikNr == "Fuik 1"
+# iterate every row to increase upto max_fuikNr
+static_fuikNr <- afvangsten_per_fuik %>% 
+  filter(fuikNr == "Fuik 1" & max_fuikNr > 1) %>% 
+  group_by(eventID) %>% 
+  add_tally() %>% 
+  ungroup() %>% 
+  filter(n > 1) %>% 
+  filter(!fuiktype %in% c("salamanderfuik drijvend NA", "salamanderfuik bodem NA")) %>% 
+  filter(!Datum == "2016-07-27") %>% 
+  arrange(eventID, fuiktype)
+
+events_ids <- unique(static_fuikNr$eventID)
+temp_recomb <- data.frame()
+temp_recomb2 <- data.frame()
+
+for(e in events_ids){
+  # extract data for event
+  temp <- static_fuikNr %>% 
+    filter(eventID == e)
+  
+  # extract fuiktypes
+  fuiktypes <- unique(temp$fuiktype)
+  
+  for(f in fuiktypes){
+    temp_sub <- temp %>% 
+      filter(fuiktype == f)
+    
+    # iterate accross rows
+    i <- 1
+    
+    max_fuikNr <- max(temp_sub$max_fuikNr)
+    while(i <= max_fuikNr){
+      print(paste0(i, "/", max_fuikNr))
+      
+      if(nrow(temp_sub[i,]) == 0){
+        print("test")
+      }
+      
+      temp_sub[i,] <- temp_sub[i,] %>% 
+        mutate(fuikNr = paste("Fuik", i, sep = " "))
+      i <- i + 1
+    }
+    
+    if(NA %in% temp_sub$eventID){
+      temp_sub <- temp_sub %>% 
+        mutate(eventID = eventID[1],
+               fuiktype = fuiktype[1],
+               Tijdstempel = Tijdstempel[1],
+               `Invuller 2` = `Invuller 2`[1],
+               Datum = Datum[1],
+               Jaar = Jaar[1],
+               actie = actie[1],
+               fuiklengte = fuiklengte[1],
+               `Net verhoogd?` = `Net verhoogd?`[1],
+               Type = Type[1],
+               locationID = locationID[1],
+               lat = lat[1],
+               long = long[1],
+               Organisation = Organisation[1],
+               max_fuikNr = max_fuikNr[1],
+               no_fuiken = no_fuiken[1],
+               fuiktype = fuiktype[1],
+               totaal_fuik = totaal_fuik[1],
+               totaal_fuik_corrected = totaal_fuik_corrected[1],
+               Locatie = Locatie[1])
+    }
+    temp_recomb <- bind_rows(temp_recomb, temp_sub)
+    remove(temp_sub)
+  }
+}
+
+temp_recomb <- temp_recomb %>% 
+  mutate(fuiktype_event = paste(fuiktype, eventID, sep = "_")) 
+
+static_fuikNr <- static_fuikNr %>% 
+  mutate(fuiktype_event = paste(fuiktype, eventID, sep = "_"))
+
+testthat::expect_true(nrow(events_missing <- static_fuikNr %>% 
+  filter(!eventID %in% temp_recomb$eventID)) == 0)
+
+testthat::expect_true(nrow(locations_missing <- static_fuikNr %>% 
+  filter(!locationID %in% temp_recomb$locationID)) == 0)
+
+testthat::expect_true(nrow(dates_missing <- static_fuikNr %>% 
+  filter(!Datum %in% temp_recomb$Datum)) == 0)
+
+testthat::expect_true(nrow(fuiktype_event_missing <- static_fuikNr %>%
+  filter(!fuiktype_event %in% temp_recomb$fuiktype_event)) == 0)
+
+static_fuikNr <- temp_recomb %>% 
+  select(-fuiktype_event, -n)
+
+dynamic_fuikNr <- afvangsten_per_fuik %>% 
+  filter(!eventID %in% static_fuikNr$eventID)
+
+afvangsten_per_fuik <- rbind(static_fuikNr,
+                             dynamic_fuikNr)
 
 false_zeroes <- afvangsten_per_fuik %>% 
   filter(fuikNr2 > max_fuikNr,
@@ -308,7 +565,32 @@ afvangsten_vr_gbif <- afvangsten_per_fuik %>%
          identifiedBy = Organisation) %>% 
   filter(!is.na(individualCount)) %>% 
   dplyr::select(-Organisation) %>% 
-  left_join(afvangsten_vr_gbif_old)
+  tidylog::left_join(afvangsten_vr_gbif_old, by = c("Tijdstempel" = "Tijdstempel",
+                                                    "Datum" = "Datum",
+                                                    "Locatie" = "Locatie",
+                                                    "actie" = "actie",
+                                                    "fuiklengte" = "fuiklengte",
+                                                    "Type" = "Type",
+                                                    "locationID" = "locationID",
+                                                    "eventID" = "eventID",
+                                                    "no_fuiken" = "no_fuiken",
+                                                    "fuikNr" = "fuikNr",
+                                                    "fuiktype" = "fuiktype",
+                                                    "scientificname" = "scientificname",
+                                                    "lifestage" = "lifestage",
+                                                    "recordedBy" = "recordedBy",
+                                                    "identifiedBy" = "identifiedBy",
+                                                    "taxonkey" = "taxonkey")) %>% 
+  rename(lat = lat.x,
+         long = long.x,
+         individualCount = individualCount.x,
+         Hoek = Hoek.x,
+         Opmerkingen = Opmerkingen.x) %>%
+  dplyr::select(-lat.y,
+                -long.y,
+                -individualCount.y,
+                -Hoek.y,
+                -Opmerkingen.y)
 
 afvangsten_vr_gbif <- afvangsten_vr_gbif %>% 
   group_by(rowid) %>% 
@@ -316,12 +598,24 @@ afvangsten_vr_gbif <- afvangsten_vr_gbif %>%
 
 dups <- afvangsten_vr_gbif %>% 
   filter(n > 1) %>% 
-  ungroup() %>% 
-  distinct(rowid,Tijdstempel,Datum,Jaar,Locatie,actie,fuiklengte,`Net verhoogd?`,lat,long,Type,locationID,eventID,no_fuiken,fuikNr,Opmerkingen,Hoek,fuiktype,lifestage,individualCount,scientificname,taxonkey,recordedBy,identifiedBy,.keep_all = TRUE)
+  ungroup() 
+
+ids <- unique(dups$eventID)
+
+for(i in ids){
+  afvangsten_vr_gbif <- afvangsten_vr_gbif %>% 
+    filter(eventID != i)
+}
+
+%>% 
+  group_by(eventID, Datum, lifestage, Jaar, Locatie, locationID, Tijdstempel,
+           actie, fuiklengte, `Net verhoogd?`, Type, lat, long, no_fuiken, fuikNr, Opmerkingen, Hoek,
+           fuiktype, scientificname, taxonkey, recordedBy, identifiedBy, occurrenceID) %>% 
+  summarise(individualCount = min(individualCount, na.rm = TRUE))
 
 unis <- afvangsten_vr_gbif %>% 
   filter(n == 1)
-  
+
 afvangsten_vr_gbif <- rbind(unis) %>% 
   dplyr::select(-n) %>% 
   group_by(rowid) %>% 
@@ -341,8 +635,8 @@ events2 <- afvangsten_vr_gbif %>%
            locationID,
            eventID) 
 
-n_distinct(afvangsten_vr_gbif$occurrenceID) == nrow(afvangsten_vr_gbif)
-n_distinct(afvangsten_vr_gbif$eventID) == nrow(events2)
+testthat::expect_true(n_distinct(afvangsten_vr_gbif$occurrenceID) == nrow(afvangsten_vr_gbif))
+testthat::expect_true(n_distinct(afvangsten_vr_gbif$eventID) == nrow(events2))
 ```
 
 ```{r datacleaning - bijvangsten vr gbif}
@@ -450,7 +744,31 @@ data_bijvangsten <- data %>%
   dplyr::select(-Organisation,
                 -fuikNr2,
                 -max_fuikNr) %>% 
-  left_join(data_bijvangsten_old)
+  tidylog::left_join(data_bijvangsten_old, by = c("Tijdstempel" = "Tijdstempel",
+                                                  "Datum" = "Datum",
+                                                  "Locatie" = "Locatie",
+                                                  "actie" = "actie",
+                                                  "fuiklengte" = "fuiklengte",
+                                                  "Type" = "Type",
+                                                  "locationID" = "locationID",
+                                                  "eventID" = "eventID",
+                                                  "no_fuiken" = "no_fuiken",
+                                                  "fuikNr" = "fuikNr",
+                                                  "fuiktype" = "fuiktype",
+                                                  "scientificname" = "scientificname",
+                                                  "lifestage" = "lifestage",
+                                                  "recordedBy" = "recordedBy",
+                                                  "identifiedBy" = "identifiedBy")) %>% 
+  rename(lat = lat.x,
+         long = long.x,
+         individualCount = individualCount.x,
+         Hoek = Hoek.x,
+         Opmerkingen = Opmerkingen.x) %>%
+  dplyr::select(-lat.y,
+                -long.y,
+                -individualCount.y,
+                -Hoek.y,
+                -Opmerkingen.y)
 
 species <- unique(data_bijvangsten$scientificname)
 
@@ -482,8 +800,8 @@ data_bijvangsten <- data_bijvangsten %>%
   left_join(temp_taxonkey,
             by = c("scientificname" = "species")) %>% 
   group_by(rowid) %>% 
-  mutate(occurrenceID = case_when(is.na(occurrenceID) ~ UUIDgenerate(),
-                                  TRUE ~ occurrenceID)) %>% 
+  tidylog::mutate(occurrenceID = case_when(is.na(occurrenceID) ~ UUIDgenerate(),
+                                           TRUE ~ occurrenceID)) %>% 
   ungroup() %>% 
   dplyr::select(-rowid,
                 -`Invuller 2`, occurrenceID,Tijdstempel,Datum,Locatie,actie,fuiklengte,lat,long,Type,locationID,eventID,no_fuiken,fuikNr,Hoek,Opmerkingen,scientificname,fuiktype,lifestage,individualCount,recordedBy,identifiedBy)
@@ -511,8 +829,16 @@ events3 <- data_bijvangsten %>%
            locationID,
            eventID) 
 
-n_distinct(data_bijvangsten$occurrenceID) == nrow(data_bijvangsten)
-n_distinct(data_bijvangsten$eventID) == nrow(events3)
+testthat::expect_true(n_distinct(data_bijvangsten$occurrenceID) == nrow(data_bijvangsten))
+testthat::expect_true(n_distinct(data_bijvangsten$eventID) == nrow(events3))
+```
+
+```{r filter data currently published, eval=FALSE}
+afvangsten_vr_gbif <- afvangsten_vr_gbif %>% 
+  filter(Datum < "2024-08-01")
+
+data_bijvangsten <- data_bijvangsten %>%
+  filter(Datum < "2024-08-01")
 ```
 
 ```{r datacleaning - export dfs vr gbif}
