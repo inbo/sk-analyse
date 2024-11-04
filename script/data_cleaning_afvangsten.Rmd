@@ -469,16 +469,16 @@ static_fuikNr <- static_fuikNr %>%
   mutate(fuiktype_event = paste(fuiktype, eventID, sep = "_"))
 
 testthat::expect_true(nrow(events_missing <- static_fuikNr %>% 
-  filter(!eventID %in% temp_recomb$eventID)) == 0)
+                             filter(!eventID %in% temp_recomb$eventID)) == 0)
 
 testthat::expect_true(nrow(locations_missing <- static_fuikNr %>% 
-  filter(!locationID %in% temp_recomb$locationID)) == 0)
+                             filter(!locationID %in% temp_recomb$locationID)) == 0)
 
 testthat::expect_true(nrow(dates_missing <- static_fuikNr %>% 
-  filter(!Datum %in% temp_recomb$Datum)) == 0)
+                             filter(!Datum %in% temp_recomb$Datum)) == 0)
 
 testthat::expect_true(nrow(fuiktype_event_missing <- static_fuikNr %>%
-  filter(!fuiktype_event %in% temp_recomb$fuiktype_event)) == 0)
+                             filter(!fuiktype_event %in% temp_recomb$fuiktype_event)) == 0)
 
 static_fuikNr <- temp_recomb %>% 
   select(-fuiktype_event, -n)
@@ -570,15 +570,14 @@ afvangsten_vr_gbif <- afvangsten_per_fuik %>%
          identifiedBy = Organisation) %>% 
   filter(!is.na(individualCount)) %>% 
   dplyr::select(-Organisation) %>% 
-  tidylog::left_join(afvangsten_vr_gbif_old, by = c("Datum" = "Datum",
+  tidylog::left_join(afvangsten_vr_gbif_old, by = c("Tijdstempel" = "Tijdstempel",
+                                                    "Datum" = "Datum",
                                                     "Locatie" = "Locatie",
                                                     "actie" = "actie",
                                                     "fuiklengte" = "fuiklengte",
                                                     "Type" = "Type",
                                                     "locationID" = "locationID",
                                                     "eventID" = "eventID",
-                                                    "no_fuiken" = "no_fuiken",
-                                                    "fuikNr" = "fuikNr",
                                                     "fuiktype" = "fuiktype",
                                                     "scientificname" = "scientificname",
                                                     "lifestage" = "lifestage",
@@ -590,21 +589,40 @@ afvangsten_vr_gbif <- afvangsten_per_fuik %>%
          individualCount = individualCount.x,
          Hoek = Hoek.x,
          Opmerkingen = Opmerkingen.x,
-         Tijdstempel = Tijdstempel.x) %>%
+         no_fuiken = no_fuiken.x,
+         fuikNr = fuikNr.x) %>%
   dplyr::select(-lat.y,
                 -long.y,
                 -individualCount.y,
                 -Hoek.y,
-                -Opmerkingen.y)
+                -Opmerkingen.y,
+                -no_fuiken.y,
+                -fuikNr.y)
 
 afvangsten_vr_gbif <- afvangsten_vr_gbif %>% 
   group_by(rowid) %>% 
   add_tally() 
 
+names <- names(afvangsten_vr_gbif)
+names <- names[!names %in% c("OccurrenceID")]
+
 dups <- afvangsten_vr_gbif %>% 
   filter(n > 1) %>% 
   ungroup() 
 
+afvangsten_vr_gbif <- afvangsten_vr_gbif %>% 
+  filter(!occurrenceID %in% dups$occurrenceID)
+
+dups <- dups %>% 
+  group_by_at(vars(-occurrenceID)) %>% 
+  mutate(occurrenceID_old = c(paste(occurrenceID, collapse = ",")),
+         occurrenceID = first(occurrenceID)) %>% 
+  ungroup() %>% 
+  distinct_at(vars(-occurrenceID_old), .keep_all = TRUE) %>% 
+  select(-n)
+
+afvangsten_vr_gbif <- rbind(afvangsten_vr_gbif, dups) %>%
+  arrange(Tijdstempel)
 # ids <- unique(dups$eventID)
 # 
 # for(i in ids){
@@ -621,11 +639,9 @@ dups <- afvangsten_vr_gbif %>%
 unis <- afvangsten_vr_gbif %>% 
   filter(n == 1)
 
-afvangsten_vr_gbif <- rbind(unis) %>% 
-  dplyr::select(-n) %>% 
-  group_by(rowid) %>% 
-  mutate(occurrenceID = case_when(is.na(occurrenceID) ~ UUIDgenerate(),
-                                  TRUE ~ occurrenceID)) %>% 
+afvangsten_vr_gbif <- afvangsten_vr_gbif %>% 
+  tidylog::mutate(occurrenceID = case_when(is.na(occurrenceID) ~ UUIDgenerate(),
+                                           TRUE ~ occurrenceID)) %>% 
   ungroup() %>% 
   dplyr::select(occurrenceID,Tijdstempel,Datum,Jaar,Locatie,actie,fuiklengte,`Net verhoogd?`,lat,long,Type,locationID,eventID,no_fuiken,fuikNr,Opmerkingen,Hoek,fuiktype,lifestage,individualCount,scientificname,taxonkey,recordedBy,identifiedBy)
 
@@ -639,6 +655,41 @@ events2 <- afvangsten_vr_gbif %>%
            long,
            locationID,
            eventID) 
+# select the first row of every group
+# afvangsten_vr_gbif <- afvangsten_vr_gbif %>%
+#   group_by(eventID, Datum, lifestage, Jaar, Locatie, locationID, Tijdstempel,
+#            actie, fuiklengte, `Net verhoogd?`, Type, lat, long, no_fuiken, fuikNr, Opmerkingen, Hoek,
+#            fuiktype, scientificname, taxonkey, recordedBy, identifiedBy, occurrenceID) %>%
+#   summarise(individualCount = min(individualCount, na.rm = TRUE))
+
+duplis2 <- afvangsten_vr_gbif %>% 
+  group_by(occurrenceID) %>%
+  add_tally() %>%
+  filter(n > 1) %>% 
+  ungroup() %>% 
+  distinct()
+
+occurence_ids <- unique(duplis2$occurrenceID)
+
+for(o in occurence_ids){
+  temp <- duplis2 %>% 
+    filter(occurrenceID == o)
+  
+  if(nrow(temp) > 1){
+    temp <- temp %>% 
+      filter(Tijdstempel == max(Tijdstempel))
+    
+    if(nrow(temp) > 1){
+      temp <- temp[1,] 
+    }
+  }
+  
+  afvangsten_vr_gbif <- afvangsten_vr_gbif %>% 
+    filter(occurrenceID != o)
+  
+  afvangsten_vr_gbif <- bind_rows(afvangsten_vr_gbif, temp)
+
+}
 
 testthat::expect_true(n_distinct(afvangsten_vr_gbif$occurrenceID) == nrow(afvangsten_vr_gbif))
 testthat::expect_true(n_distinct(afvangsten_vr_gbif$eventID) == nrow(events2))
@@ -760,15 +811,14 @@ data_bijvangsten <- data %>%
   dplyr::select(-Organisation,
                 -fuikNr2,
                 -max_fuikNr) %>% 
-  tidylog::left_join(data_bijvangsten_old, by = c("Datum" = "Datum",
+  tidylog::left_join(data_bijvangsten_old, by = c("Tijdstempel" = "Tijdstempel",
+                                                  "Datum" = "Datum",
                                                   "Locatie" = "Locatie",
                                                   "actie" = "actie",
                                                   "fuiklengte" = "fuiklengte",
                                                   "Type" = "Type",
                                                   "locationID" = "locationID",
                                                   "eventID" = "eventID",
-                                                  "no_fuiken" = "no_fuiken",
-                                                  "fuikNr" = "fuikNr",
                                                   "fuiktype" = "fuiktype",
                                                   "scientificname" = "scientificname",
                                                   "lifestage" = "lifestage",
@@ -779,13 +829,17 @@ data_bijvangsten <- data %>%
          individualCount = individualCount.x,
          Hoek = Hoek.x,
          Opmerkingen = Opmerkingen.x,
-         Tijdstempel = Tijdstempel.x) %>%
+         no_fuiken = no_fuiken.x,
+         fuikNr = fuikNr.x) %>%
   dplyr::select(-lat.y,
                 -long.y,
                 -individualCount.y,
                 -Hoek.y,
                 -Opmerkingen.y,
-                -Tijdstempel.y)
+                -Tijdstempel.y,
+                -no_fuiken.y,
+                -FuikNr.y)
+
 
 species <- unique(data_bijvangsten$scientificname)
 
