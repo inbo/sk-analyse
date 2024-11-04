@@ -645,16 +645,7 @@ afvangsten_vr_gbif <- afvangsten_vr_gbif %>%
   ungroup() %>% 
   dplyr::select(occurrenceID,Tijdstempel,Datum,Jaar,Locatie,actie,fuiklengte,`Net verhoogd?`,lat,long,Type,locationID,eventID,no_fuiken,fuikNr,Opmerkingen,Hoek,fuiktype,lifestage,individualCount,scientificname,taxonkey,recordedBy,identifiedBy)
 
-events2 <- afvangsten_vr_gbif %>% 
-  ungroup() %>% 
-  distinct(Datum,
-           Jaar,
-           Locatie,
-           actie,
-           lat,
-           long,
-           locationID,
-           eventID) 
+
 # select the first row of every group
 # afvangsten_vr_gbif <- afvangsten_vr_gbif %>%
 #   group_by(eventID, Datum, lifestage, Jaar, Locatie, locationID, Tijdstempel,
@@ -690,6 +681,17 @@ for(o in occurence_ids){
   afvangsten_vr_gbif <- bind_rows(afvangsten_vr_gbif, temp)
 
 }
+
+events2 <- afvangsten_vr_gbif %>% 
+  ungroup() %>% 
+  distinct(Datum,
+           Jaar,
+           Locatie,
+           actie,
+           lat,
+           long,
+           locationID,
+           eventID) 
 
 testthat::expect_true(n_distinct(afvangsten_vr_gbif$occurrenceID) == nrow(afvangsten_vr_gbif))
 testthat::expect_true(n_distinct(afvangsten_vr_gbif$eventID) == nrow(events2))
