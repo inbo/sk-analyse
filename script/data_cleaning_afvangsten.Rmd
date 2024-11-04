@@ -699,13 +699,16 @@ testthat::expect_true(n_distinct(afvangsten_vr_gbif$eventID) == nrow(events2))
 
 ```{r}
 missing_from_old <- afvangsten_vr_gbif_old %>% 
-  filter(!occurrenceID %in% afvangsten_vr_gbif$occurrenceID) 
+  filter(!occurrenceID %in% afvangsten_vr_gbif$occurrenceID) %>% 
+  write_csv("./interim/missing_from_old.csv")
 
 missing_from_new <- afvangsten_vr_gbif %>%
-  filter(!occurrenceID %in% afvangsten_vr_gbif_old$occurrenceID)
+  filter(!occurrenceID %in% afvangsten_vr_gbif_old$occurrenceID) %>% 
+  write_csv("./interim/missing_from_new.csv")
 
 in_both <- afvangsten_vr_gbif %>% 
-  filter(occurrenceID %in% afvangsten_vr_gbif_old$occurrenceID) 
+  filter(occurrenceID %in% afvangsten_vr_gbif_old$occurrenceID) %>% 
+  write_csv("./interim/in_both.csv")
 ```
 
 ```{r datacleaning - bijvangsten vr gbif}
@@ -838,9 +841,8 @@ data_bijvangsten <- data %>%
                 -individualCount.y,
                 -Hoek.y,
                 -Opmerkingen.y,
-                -Tijdstempel.y,
                 -no_fuiken.y,
-                -FuikNr.y)
+                -fuikNr.y)
 
 
 species <- unique(data_bijvangsten$scientificname)
@@ -877,7 +879,28 @@ data_bijvangsten <- data_bijvangsten %>%
                                            TRUE ~ occurrenceID)) %>% 
   ungroup() %>% 
   dplyr::select(-rowid,
-                -`Invuller 2`, occurrenceID,Tijdstempel,Datum,Locatie,actie,fuiklengte,lat,long,Type,locationID,eventID,no_fuiken,fuikNr,Hoek,Opmerkingen,scientificname,fuiktype,lifestage,individualCount,recordedBy,identifiedBy)
+                -`Invuller 2`, 
+                occurrenceID,
+                Tijdstempel,
+                Datum,
+                Locatie,
+                actie,
+                fuiklengte,
+                lat,
+                long,
+                Type,
+                locationID,
+                eventID,
+                no_fuiken,
+                fuikNr,
+                Hoek,
+                Opmerkingen,
+                scientificname,
+                fuiktype,
+                lifestage,
+                individualCount,
+                recordedBy,
+                identifiedBy)
 
 x <- names(afvangsten_vr_gbif)
 y <- names(data_bijvangsten)
@@ -901,6 +924,40 @@ events3 <- data_bijvangsten %>%
            long,
            locationID,
            eventID) 
+
+dup_bycatch <- data_bijvangsten %>% 
+  group_by(occurrenceID) %>%
+  add_tally() %>%
+  filter(n > 1) %>% 
+  ungroup() 
+
+# reduce columns based on all columns except occurrenceID
+dup_bycatch_redux <- dup_bycatch %>% 
+  group_by_at(vars(-occurrenceID)) %>% 
+  mutate(occurrenceID_old = c(paste(occurrenceID, collapse = ",")),
+         occurrenceID = first(occurrenceID)) %>% 
+  ungroup() %>% 
+  distinct_at(vars(-occurrenceID_old), .keep_all = TRUE) %>% 
+  select(-n)
+
+# Remove remaining duplicates from data_bijvangsten
+dup_bycatch_redux <- dup_bycatch_redux %>% 
+  select(-occurrenceID_old) %>% 
+  distinct(occurrenceID, .keep_all = TRUE) 
+
+# Create a list of occurrenceIDs in dup_bycatch_redux$occurrenceID_old
+occurence_ids <- unique(unlist(dup_bycatch$occurrenceID))
+
+data_bijvangsten <- data_bijvangsten %>%
+  filter(!occurrenceID %in% occurence_ids) 
+
+data_bijvangsten <- bind_rows(data_bijvangsten, dup_bycatch_redux)
+
+remaining_dup_bycatch <- data_bijvangsten %>% 
+  group_by(occurrenceID) %>%
+  add_tally() %>%
+  filter(n > 1) %>% 
+  ungroup()
 
 testthat::expect_true(n_distinct(data_bijvangsten$occurrenceID) == nrow(data_bijvangsten))
 testthat::expect_true(n_distinct(data_bijvangsten$eventID) == nrow(events3))
