@@ -597,7 +597,8 @@ afvangsten_vr_gbif <- afvangsten_per_fuik %>%
                 -Hoek.y,
                 -Opmerkingen.y,
                 -no_fuiken.y,
-                -fuikNr.y)
+                -fuikNr.y,
+                -n)
 
 afvangsten_vr_gbif <- afvangsten_vr_gbif %>% 
   group_by(rowid) %>% 
@@ -613,16 +614,41 @@ dups <- afvangsten_vr_gbif %>%
 afvangsten_vr_gbif <- afvangsten_vr_gbif %>% 
   filter(!occurrenceID %in% dups$occurrenceID)
 
+# Duplicate occurrenceID's
+# If a record is a real duplicate (all columns are the same), keep the first record
 dups <- dups %>% 
   group_by_at(vars(-occurrenceID)) %>% 
   mutate(occurrenceID_old = c(paste(occurrenceID, collapse = ",")),
          occurrenceID = first(occurrenceID)) %>% 
   ungroup() %>% 
   distinct_at(vars(-occurrenceID_old), .keep_all = TRUE) %>% 
+  select(-n) 
+
+
+# If a record is not a real duplicate, keep all the records & add a new occurrenceID
+remaining_dups_catch <- dups %>% 
+  group_by(occurrenceID) %>% 
+  add_tally() %>% 
+  filter(n > 1) %>% 
+  ungroup() %>% 
   select(-n)
 
-afvangsten_vr_gbif <- rbind(afvangsten_vr_gbif, dups) %>%
-  arrange(Tijdstempel)
+
+# Extract the records that were real duplicates => these are the records that are not in remaining_dups_catch
+dups_catch_fixed <- dups %>% 
+  filter(!occurrenceID %in% remaining_dups_catch$occurrenceID) %>% 
+  ungroup()
+
+# Add new occurrenceID to the remaining duplicates
+remaining_dups_catch <- remaining_dups_catch %>% 
+  group_by(occurrenceID) %>%
+  mutate(occurrenceID = UUIDgenerate(rowid)) %>% 
+  ungroup()
+
+# Combine the fixed duplicates with the remaining duplicates & the unique records
+afvangsten_vr_gbif <- rbind(afvangsten_vr_gbif, dups_catch_fixed, remaining_dups_catch) %>%
+  arrange(Tijdstempel) %>% 
+  select(-n)
 # ids <- unique(dups$eventID)
 # 
 # for(i in ids){
@@ -637,6 +663,8 @@ afvangsten_vr_gbif <- rbind(afvangsten_vr_gbif, dups) %>%
 #   summarise(individualCount = min(individualCount, na.rm = TRUE))
 
 unis <- afvangsten_vr_gbif %>% 
+  group_by(occurrenceID) %>%
+  add_tally() %>%
   filter(n == 1)
 
 afvangsten_vr_gbif <- afvangsten_vr_gbif %>% 
