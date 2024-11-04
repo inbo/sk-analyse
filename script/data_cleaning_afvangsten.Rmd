@@ -679,7 +679,7 @@ for(o in occurence_ids){
     filter(occurrenceID != o)
   
   afvangsten_vr_gbif <- bind_rows(afvangsten_vr_gbif, temp)
-
+  
 }
 
 events2 <- afvangsten_vr_gbif %>% 
@@ -974,5 +974,24 @@ data_bijvangsten <- data_bijvangsten %>%
 ```{r datacleaning - export dfs vr gbif}
 write_csv(afvangsten_vr_gbif, "./output/gbif_stierkikker_vangsten.csv")
 write_csv(data_bijvangsten, "./output/gbif_stierkikker_bijvangsten.csv")
+```
+
+Plot data on a map
+```{r}
+library(leaflet)
+
+# Create a map
+m <- leaflet() %>% 
+  addTiles() 
+# Add markers
+m <- m %>% 
+  addCircles(data = afvangsten_vr_gbif,
+             lat = ~lat,
+             lng = ~long,
+             radius = 5,
+             color = "red",
+             stroke = FALSE,
+             fillOpacity = 0.5,
+             popup = ~occurrenceID)
 ```
 
