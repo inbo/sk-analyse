@@ -4,6 +4,7 @@ on:
      - main
    paths:
      - output/**
+  workflow_dispatch:
   
 name: dwc-mapping
 
