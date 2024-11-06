@@ -124,6 +124,11 @@ not_linked <- data %>%
 ```
 
 ```{r add uitvoerders}
+dubbele_uitvoerders <- uitvoerders %>% 
+  group_by(Email) %>% 
+  filter(n() > 1) %>% 
+  ungroup()
+
 data <- data %>% 
   left_join(uitvoerders, by = c("E-mailadres" = "Email")) %>% 
   mutate(Organisation = case_when(is.na(Organisation) & Invuller == "kris meeus" ~ "Natuurwerk",
@@ -137,6 +142,9 @@ Organisation_unknown <- data %>%
   select(Tijdstempel, `E-mailadres`, Invuller, Organisation)
 
 write_csv(Organisation_unknown, "./interim/Organisation_unknown.csv")
+
+data <- data %>% 
+  filter(!Organisation %in% c("Unknown", "NA"))
 ```
 
 ## Datacleaning
