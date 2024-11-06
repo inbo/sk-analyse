@@ -999,7 +999,7 @@ testthat::expect_true(n_distinct(data_bijvangsten$occurrenceID) == nrow(data_bij
 testthat::expect_true(n_distinct(data_bijvangsten$eventID) == nrow(events3))
 ```
 
-```{r filter data currently published, eval=FALSE}
+```{r filter data currently published}
 afvangsten_vr_gbif <- afvangsten_vr_gbif %>% 
   filter(Datum < "2024-08-01")
 
