@@ -134,6 +134,8 @@ data <- data %>%
   mutate(Organisation = case_when(is.na(Organisation) & Invuller == "kris meeus" ~ "Natuurwerk",
                                   is.na(Organisation) & Invuller == "Pieter Liekens" ~ "Natuurpunt",
                                   is.na(Organisation) & Invuller == "pieter liekens" ~ "Natuurpunt",
+                                  `E-mailadres` == "smeetstimon@gmail.com" & 
+                                    `Fuik 1 - Opmerkingen` == "Afvangst Vrijwilligers Natuurpunt" ~ "Natuurpunt",
                                   is.na(Organisation) ~ "Unknown",
                                   TRUE ~ Organisation))
 
@@ -610,16 +612,17 @@ afvangsten_vr_gbif <- afvangsten_per_fuik %>%
 
 afvangsten_vr_gbif <- afvangsten_vr_gbif %>% 
   group_by(rowid) %>% 
-  add_tally() 
+  add_tally() %>% 
+  ungroup() 
 
 names <- names(afvangsten_vr_gbif)
 names <- names[!names %in% c("OccurrenceID")]
 
-dups <- afvangsten_vr_gbif %>% 
-  filter(n > 1) %>% 
-  ungroup() 
+dups <- afvangsten_vr_gbif %>%
+  filter(n > 1) %>%
+  ungroup()
 
-afvangsten_vr_gbif <- afvangsten_vr_gbif %>% 
+afvangsten_vr_gbif <- afvangsten_vr_gbif %>%
   filter(!occurrenceID %in% dups$occurrenceID)
 
 # Duplicate occurrenceID's
@@ -638,8 +641,7 @@ remaining_dups_catch <- dups %>%
   group_by(occurrenceID) %>% 
   add_tally() %>% 
   filter(n > 1) %>% 
-  ungroup() %>% 
-  select(-n)
+  ungroup()
 
 
 # Extract the records that were real duplicates => these are the records that are not in remaining_dups_catch
@@ -650,7 +652,8 @@ dups_catch_fixed <- dups %>%
 # Add new occurrenceID to the remaining duplicates
 remaining_dups_catch <- remaining_dups_catch %>% 
   group_by(occurrenceID) %>%
-  mutate(occurrenceID = UUIDgenerate(rowid)) %>% 
+  mutate(occurrenceID = UUIDgenerate(n = n_distinct(rowid))) %>% 
+  select(-occurrenceID_old) %>%
   ungroup()
 
 # Combine the fixed duplicates with the remaining duplicates & the unique records
