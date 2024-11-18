@@ -4,7 +4,7 @@ installed <- rownames(installed.packages())
 required <- c("dplyr", "here","httr", "readr",
               "rgbif", "googlesheets4", "uuid",
               "testthat", "magrittr", "tidyr",
-              "tibble", "tidylog"
+              "tibble", "tidylog","leaflet"
 )
 # install packages if needed
 if (!all(required %in% installed)) {
