@@ -5,6 +5,8 @@ on:
   push:
     branches:
       - '28-fetch-data-fails'
+
+  workflow_dispatch:
     
 name: fetch-data
 
