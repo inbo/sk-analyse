@@ -1,4 +1,4 @@
-Latest_Update,Gebied,Locatie,lat,long,Nummer,Type,UUID,eDNA_Status,Laatste_vangst,Larven,Post-Metamorfen
+Latest_Update,Gebied,Locatie,lat_vijver,long_vijver,Nummer,Type,UUID,eDNA_Status,Laatste_vangst,Larven,Post-Metamorfen
 2023-06-23T09:32:55Z,NA,moerbeemdweg,NA,NA,,Stilstaand,362ad334-59ba-4d85-8774-a60dd8d5f130,onbekend,2019-07-31T00:00:00Z,1371,1
 2021-05-19T15:24:01Z,Mol,mol 1,NA,NA,,Stilstaand,4f12a0ae-f003-4883-a393-32da5748e0de,onbekend,2019-07-02T00:00:00Z,0,0
 2021-05-19T15:24:05Z,Mol,mol 2,NA,NA,,Stilstaand,3c8d13ea-e390-4595-aea5-d4bc839eb26f,onbekend,NA,NA,NA
