@@ -72,29 +72,33 @@ eea_grid <- sf::st_read("https://github.com/inbo/aspbo/raw/refs/heads/uat/data/o
   sf::st_transform(4326) %>% 
   mutate(geometry = geom) %>%
   sf::st_centroid() %>% 
-  mutate(lat = sf::st_coordinates(geom)[,2],
-         long = sf::st_coordinates(geom)[,1]) %>% 
+  mutate(lat_grid = sf::st_coordinates(geom)[,2],
+         long_grid = sf::st_coordinates(geom)[,1]) %>% 
   sf::st_drop_geometry(geom) %>%
-  sf::st_as_sf() 
+  sf::st_as_sf()
 
 vijvers_zndr_coordinaten <- vijvers_int %>% 
   filter(is.na(lat) | is.na(long)) %>% 
+  rename(lat_vijver = lat,
+         long_vijver = long) %>%
   write_csv("./interim/vijvers_zndr_coordinaten.csv")
 
 vijvers_int <- vijvers_int %>% 
   filter(!UUID %in% vijvers_zndr_coordinaten$UUID) %>%
-  sf::st_as_sf(coords = c("long", "lat"), crs = 4326)
+  rename(lat_vijver = lat,
+         long_vijver = long) %>%
+  sf::st_as_sf(coords = c("long_vijver", "lat_vijver"), crs = 4326, remove = FALSE)
 
 if(sf::st_crs(eea_grid) == sf::st_crs(vijvers_int)){
-  vijvers <- sf::st_join(vijvers_int, eea_grid) %>% 
+  vijvers_gridded <- sf::st_join(vijvers_int, eea_grid) %>% 
     sf::st_drop_geometry() %>% 
     select(-CELLCODE) %>% 
     bind_rows(vijvers_zndr_coordinaten %>% 
-                mutate(lat = NA_real_,
-                       long = NA_real_))
+                mutate(lat_vijver = NA_real_,
+                       long_vijver = NA_real_))
 }
 
-testthat::expect_true(nrow(vijvers) == nrow(vijvers_int) + nrow(vijvers_zndr_coordinaten))
+testthat::expect_true(nrow(vijvers_gridded) == nrow(vijvers_int) + nrow(vijvers_zndr_coordinaten))
 ```
 
 ## Combine datasets
@@ -112,7 +116,7 @@ data <- rawdata %>%
                                    TRUE ~ `Fuik 1 - AV`),
          `Fuik 1 - Opmerkingen` = case_when(Tijdstempel == "23-5-2018 15:52:13" ~ "AV (poten niet meegeteld) 16cm",
                                             TRUE ~ `Fuik 1 - Opmerkingen`)) %>% 
-  left_join(vijvers) %>% 
+  left_join(vijvers_gridded) %>% 
   rename(locationID = UUID)
 
 #check join
@@ -165,7 +169,7 @@ table(data$`Wat wil je melden`)
 data_afvangsten <- data %>% 
   filter(!is.na(locationID),
          grepl("Afvangst", `Wat wil je melden`))%>% 
-  select(-contains("Vijver"), 
+  select(-contains("Vijver", ignore.case = FALSE), 
          -`E-mailadres`, 
          -`Aantal werknemers`,
          -Startuur,
@@ -457,8 +461,10 @@ for(e in events_ids){
                `Net verhoogd?` = `Net verhoogd?`[1],
                Type = Type[1],
                locationID = locationID[1],
-               lat = lat[1],
-               long = long[1],
+               lat_vijver = lat_vijver[1],
+               long_vijver = long_vijver[1],
+               lat_grid = lat_grid[1],
+               long_grid = long_grid[1],
                Organisation = Organisation[1],
                max_fuikNr = max_fuikNr[1],
                no_fuiken = no_fuiken[1],
@@ -515,7 +521,7 @@ table(afvangsten_per_fuik$fuiktype, useNA = "ifany") #NA's zijn meestal dubbele 
 
 # set order of colums
 afvangsten_per_fuik <- afvangsten_per_fuik %>% 
-  select("Tijdstempel", "Invuller 2", "Datum", "Jaar", "Locatie", "actie", "fuiklengte", "Net verhoogd?", "lat", "long", "Type", "locationID", "Organisation", "eventID", "no_fuiken", "fuikNr", "Opmerkingen", "L1", "L0", "L2", "M2", "AV", "AM", "L00", "M1", "Hoek", "fuiktype", "larven_fuik", "totaal_fuik", "correctie_factor", "larven_corrected", "totaal_fuik_corrected") %>% 
+  select("Tijdstempel", "Invuller 2", "Datum", "Jaar", "Locatie", "actie", "fuiklengte", "Net verhoogd?", "lat_vijver", "long_vijver", "lat_grid", "long_grid", "Type", "locationID", "Organisation", "eventID", "no_fuiken", "fuikNr", "Opmerkingen", "L1", "L0", "L2", "M2", "AV", "AM", "L00", "M1", "Hoek", "fuiktype", "larven_fuik", "totaal_fuik", "correctie_factor", "larven_corrected", "totaal_fuik_corrected") %>% 
   arrange(desc("Tijdstempel"))
 
 #Export
@@ -556,12 +562,16 @@ afvangsten_vr_gbif_old <- read_csv("./output/gbif_stierkikker_vangsten.csv") %>%
 
 afvangsten_vr_gbif <- afvangsten_per_fuik %>%
   filter(Jaar > 2018) %>% 
+  rename(lat = lat_grid,
+         long = long_grid) %>%
   select(-larven_fuik,
          -totaal_fuik,
          -correctie_factor,
          -larven_corrected,
          -totaal_fuik_corrected,
-         -`Invuller 2`) %>% 
+         -`Invuller 2`,
+         -lat_vijver,
+         -long_vijver) %>% 
   pivot_longer(cols = c("L00",
                         "L0",
                         "L1",
@@ -760,6 +770,8 @@ data_bijvangsten <- data %>%
   filter(!is.na(locationID),
          grepl("Afvangst", `Wat wil je melden`),
          Jaar > 2018) %>% 
+  rename(lat = lat_grid,
+         long = long_grid) %>%
   select(-contains("Vijver"), 
          -contains("fuiken"),
          -`E-mailadres`, 
