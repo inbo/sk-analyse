@@ -64,7 +64,7 @@ verbatimData_until_2018 <- verbatimData %>%
   filter(datasetName == "Invasive species - American bullfrog (Lithobates catesbeiana) in Flanders, Belgium") %>% 
   dplyr::select(gbifID, lifeStage, verbatimLocality)
 
-lifeStages_until_2018 <- verbatimData_until_2018 %>% 
+lifeStages_until_2018_int <- verbatimData_until_2018 %>% 
   dplyr::select(gbifID, lifeStage) %>% 
   separate(lifeStage, 
            sep = ";",
@@ -96,7 +96,9 @@ lifeStages_until_2018 <- verbatimData_until_2018 %>%
                     "n")) %>% 
   mutate(n = as.numeric(n)) %>% 
   filter(n != 0,
-         !is.na(n)) %>% 
+         !is.na(n)) 
+
+lifeStages_until_2018 <- lifeStages_until_2018_int %>% 
   mutate(lifeStage = case_when(grepl("larvae", lifeStage2) ~ "larvae",
                                grepl("metamorph", lifeStage2) ~ "juvenile",
                                grepl("adult", lifeStage2) ~ "adult",
@@ -304,3 +306,34 @@ cleanData <- cleanData %>%
 ```{r export cleanData}
 write_csv(cleanData, "./interim/Lithobates_catesbeianus_management_data.csv")
 ```
+
+# Conform to the post 2018 afvangsten per fuik dataset
+```{r}
+table(lifeStages_until_2018_conf$lifeStage)
+
+lifeStages_until_2018_conf <- lifeStages_until_2018_int %>% 
+  mutate(lifeStage = case_when(grepl("female", lifeStage2) ~ "AV",
+                               grepl("male", lifeStage2) ~ "AM",
+                               lifeStage2 %in% c("larvae with hind legs < 1cm", "larvaewith hind legs < 1cm") ~ "L1",
+                               lifeStage2 %in% c("larvae with hind legs > 1cm", "larvaewith hind legs > 1cm") ~ "L2",
+                               lifeStage2 %in% c("larvae no legs", "larvaeno legs") ~ "L0",
+                               lifeStage2 %in% c("metamorph without tail", "metamorphwithout tail") ~ "M2",
+                               lifeStage2 %in% c("metamorph with tail", "metamorphwith tail") ~ "M1",
+                               lifeStage2 %in% c("smallest larvae < 5cm no legs", "smallestlarvae < 5cm no legs") ~ "L00",
+                               lifeStage2 %in% c("Juvenieloops", "Juveniel", "metamorph") ~ "M?",
+                               lifeStage2 %in% c("adult", "adults") ~ "A?",
+                               lifeStage2 %in% c("larvae", "larvae?", "lenght< 5 cm") ~ "L?",
+                               TRUE ~ lifeStage2)) %>% 
+  pivot_wider(id_cols = gbifID, names_from = lifeStage, values_from = n, values_fn = min, values_fill = NA) %>% 
+  group_by(gbifID) %>%
+  mutate(larven_fuik = sum(L0, L00, L1 na.rm = TRUE),
+         juveniel_fuik = sum(L1, L2, na.rm = TRUE),
+         adult_fuik = sum(AV, AM, na.rm = TRUE)) %>%
+
+
+```
+
+```{r}
+
+```
+
