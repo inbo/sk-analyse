@@ -320,14 +320,14 @@ lifeStages_until_2018_conf <- lifeStages_until_2018_int %>%
                                lifeStage2 %in% c("metamorph without tail", "metamorphwithout tail") ~ "M2",
                                lifeStage2 %in% c("metamorph with tail", "metamorphwith tail") ~ "M1",
                                lifeStage2 %in% c("smallest larvae < 5cm no legs", "smallestlarvae < 5cm no legs") ~ "L00",
-                               lifeStage2 %in% c("Juvenieloops", "Juveniel", "metamorph") ~ "M?",
-                               lifeStage2 %in% c("adult", "adults") ~ "A?",
-                               lifeStage2 %in% c("larvae", "larvae?", "lenght< 5 cm") ~ "L?",
+                               lifeStage2 %in% c("Juvenieloops", "Juveniel", "metamorph") ~ "MX",
+                               lifeStage2 %in% c("adult", "adults") ~ "AX",
+                               lifeStage2 %in% c("larvae", "larvae?", "lenght< 5 cm") ~ "LX",
                                TRUE ~ lifeStage2)) %>% 
   pivot_wider(id_cols = gbifID, names_from = lifeStage, values_from = n, values_fn = min, values_fill = NA) %>% 
   group_by(gbifID) %>%
-  mutate(larven_fuik = sum(L0, L00, L1 na.rm = TRUE),
-         juveniel_fuik = sum(L1, L2, na.rm = TRUE),
+  mutate(larven_fuik = sum(L0, L00, L1, L2, LX, na.rm = TRUE),
+         juveniel_fuik = sum(M1, L2, na.rm = TRUE),
          adult_fuik = sum(AV, AM, na.rm = TRUE)) %>%
 
 
