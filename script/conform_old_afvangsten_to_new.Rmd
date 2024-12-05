@@ -151,7 +151,7 @@ lifeStages_pre2018 <- verbatimData_until_2018 %>%
   mutate(n = as.numeric(n)) %>% 
   filter(n != 0,
          !is.na(n)) %>% 
-    mutate(lifeStage = case_when(grepl("female", lifeStage2) ~ "AV",
+  mutate(lifeStage = case_when(grepl("female", lifeStage2) ~ "AV",
                                grepl("male", lifeStage2) ~ "AM",
                                lifeStage2 %in% c("larvae with hind legs < 1cm", "larvaewith hind legs < 1cm") ~ "L1",
                                lifeStage2 %in% c("larvae with hind legs > 1cm", "larvaewith hind legs > 1cm") ~ "L2",
@@ -174,14 +174,14 @@ locations_pre2018 <- verbatimData_pre2018 %>%
   dplyr::select(gbifID, verbatimLocality) %>% 
   mutate(fuikNr = str_extract(verbatimLocality, "Fuik [0-9]"),
          Locatie = case_when(!is.na(fuikNr) ~ str_replace(pattern = fuikNr,
-                        replacement = "", 
-                        string = verbatimLocality),
-                        TRUE ~ verbatimLocality),
+                                                          replacement = "", 
+                                                          string = verbatimLocality),
+                             TRUE ~ verbatimLocality),
          Hoek = str_extract(verbatimLocality, "[0-9][0-9]°"),
          Locatie = case_when(!is.na(Hoek) ~ str_replace(pattern = Hoek,
-                        replacement = "", 
-                        string = Locatie),
-                        TRUE ~ Locatie),
+                                                        replacement = "", 
+                                                        string = Locatie),
+                             TRUE ~ Locatie),
          Locatie = str_trim(tolower(Locatie))) %>% 
   left_join(vijvers_int, by = c("Locatie" = "Locatie")) %>% 
   select(gbifID,
@@ -190,10 +190,47 @@ locations_pre2018 <- verbatimData_pre2018 %>%
          long_vijver = long,
          Locatie, 
          fuikNr,
-         Hoek) 
+         Hoek,
+         Type) 
 
 # Add lat_grid and long_grid
+gridcells <- st_intersection(locations_pre2018 %>% 
+                               filter(!is.na(lat_vijver),
+                                      !is.na(long_vijver)) %>%
+                               distinct(locationID, lat_vijver, long_vijver, Type) %>% 
+                               st_as_sf(coords = c("long_vijver", "lat_vijver"), crs = 4326),
+                             eea_grid) 
+gridcells <- gridcells %>% 
+  select(-CELLCODE) %>% 
+  st_drop_geometry()
 
+locations_pre2018 <- locations_pre2018 %>%
+  left_join(gridcells, by = c("locationID" = "locationID")) 
+```
 
+```{r finalise mapping}
+table(rawData$samplingProtocol)
+table(afvangsten_post2018$actie)
+table(afvangsten_post2018$Type)
+
+afvangsten_pre2018 <- rawData %>% 
+  filter(!samplingProtocol %in% c("field observation")) %>% 
+  left_join(lifeStages_pre2018, by = "gbifID") %>% 
+  left_join(locations_pre2018, by = "gbifID") %>% 
+  rename(locationID = locationID.y,
+         Datum = eventDate,
+         Jaar = year) %>%
+  mutate(Tijdstempel = NA_character_,
+         actie = case_when(samplingProtocol == "Afschot" ~ "Afschot",
+                           samplingProtocol %in% c("fike", "paired fyke nets",
+                                                   "MC trap", "NV", "Pitfall Trap", 
+                                                   "seine netting", "Dempen", "pumps") ~ "Afvangst",
+                           TRUE ~ "Andere"),
+         fuiklengte = NA_integer_,
+         `Invuller 2` = NA_character_,
+         `Net verhoogd?` = NA,
+         Type = case_when("paired fyke nets")) %>%
+  select(all_of(names(afvangsten_post2018)))
+  
 ```
 
