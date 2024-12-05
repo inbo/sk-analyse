@@ -70,3 +70,6 @@ if(!reuse){
 }
 ```
 
+```{r read afvangsten per fuik}
+afvangsten_post2018 <- read_csv("./interim/afvangsten_per_fuik.csv")
+```
