@@ -73,3 +73,59 @@ if(!reuse){
 ```{r read afvangsten per fuik}
 afvangsten_post2018 <- read_csv("./interim/afvangsten_per_fuik.csv")
 ```
+
+```{r map lifestages}
+verbatimData_until_2018 <- verbatimData %>% 
+  dplyr::select(gbifID, lifeStage, verbatimLocality)
+
+lifeStages_until_2018_int <- verbatimData_until_2018 %>% 
+  dplyr::select(gbifID, lifeStage) %>% 
+  separate(lifeStage, 
+           sep = ";",
+           into = c("stage1",
+                    "stage2",
+                    "stage3",
+                    "stage4",
+                    "stage5",
+                    "stage6",
+                    "stage7",
+                    "stage8",
+                    "stage9",
+                    "stage10",
+                    "stage11",
+                    "stage12",
+                    "stage13",
+                    "stage14",
+                    "stage15",
+                    "stage16",
+                    "stage17")) %>% 
+  pivot_longer(cols = contains("stage"),
+               names_to = "lifestage_nr",
+               values_to = "lifeStage") %>% 
+  dplyr::select(-lifestage_nr) %>% 
+  mutate(lifeStage = str_remove(lifeStage, " "),
+         lifeStage = str_remove(lifeStage, "lenght:")) %>% 
+  separate(lifeStage, sep = ":",
+           into = c("lifeStage2",
+                    "n")) %>% 
+  mutate(n = as.numeric(n)) %>% 
+  filter(n != 0,
+         !is.na(n)) %>% 
+    mutate(lifeStage = case_when(grepl("female", lifeStage2) ~ "AV",
+                               grepl("male", lifeStage2) ~ "AM",
+                               lifeStage2 %in% c("larvae with hind legs < 1cm", "larvaewith hind legs < 1cm") ~ "L1",
+                               lifeStage2 %in% c("larvae with hind legs > 1cm", "larvaewith hind legs > 1cm") ~ "L2",
+                               lifeStage2 %in% c("larvae no legs", "larvaeno legs") ~ "L0",
+                               lifeStage2 %in% c("metamorph without tail", "metamorphwithout tail") ~ "M2",
+                               lifeStage2 %in% c("metamorph with tail", "metamorphwith tail") ~ "M1",
+                               lifeStage2 %in% c("smallest larvae < 5cm no legs", "smallestlarvae < 5cm no legs") ~ "L00",
+                               lifeStage2 %in% c("Juvenieloops", "Juveniel", "metamorph") ~ "MX",
+                               lifeStage2 %in% c("adult", "adults") ~ "AX",
+                               lifeStage2 %in% c("larvae", "larvae?", "lenght< 5 cm") ~ "LX",
+                               TRUE ~ lifeStage2)) %>% 
+  pivot_wider(id_cols = gbifID, names_from = lifeStage, values_from = n, values_fn = min, values_fill = NA) %>% 
+  group_by(gbifID) %>%
+  mutate(larven_fuik = sum(L0, L00, L1, L2, LX, na.rm = TRUE),
+         totaal_fuik = sum(M1, M2, MX,AV, AM, AX, larven_fuik, na.rm = TRUE))
+```
+
