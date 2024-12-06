@@ -327,8 +327,6 @@ data_afvangsten_wide <- bind_rows(data_afvangsten_wide_single,
 table(data_afvangsten_wide$eventID, useNA = "ifany")
 ```
 
-
-
 ```{r datacleaning: events - combine}
 # Combineer data
 data_afvangsten <- bind_rows(data_afvangsten_wide,
