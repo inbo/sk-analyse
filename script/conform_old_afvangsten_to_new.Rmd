@@ -9,6 +9,7 @@ output: html_document
 library(rgbif)
 library(fistools)
 library(googlesheets4)
+library(sf)
 library(tidyverse)
 ```
 
@@ -118,7 +119,7 @@ afvangsten_post2018 <- read_csv("./interim/afvangsten_per_fuik.csv") %>%
 verbatimData_pre2018 <- verbatimData %>% 
   dplyr::select(gbifID, lifeStage, verbatimLocality)
 
-lifeStages_pre2018 <- verbatimData_until_2018 %>% 
+lifeStages_pre2018 <- verbatimData_pre2018 %>% 
   dplyr::select(gbifID, lifeStage) %>% 
   separate(lifeStage, 
            sep = ";",
@@ -172,12 +173,12 @@ lifeStages_pre2018 <- verbatimData_until_2018 %>%
 ```{r map locations}
 locations_pre2018 <- verbatimData_pre2018 %>% 
   dplyr::select(gbifID, verbatimLocality) %>% 
-  mutate(fuikNr = str_extract(verbatimLocality, "Fuik [0-9]"),
+  mutate(fuikNr = str_extract(verbatimLocality, "Fuik [0-9]+"),
          Locatie = case_when(!is.na(fuikNr) ~ str_replace(pattern = fuikNr,
                                                           replacement = "", 
                                                           string = verbatimLocality),
                              TRUE ~ verbatimLocality),
-         Hoek = str_extract(verbatimLocality, "[0-9][0-9]°"),
+         Hoek = str_extract(verbatimLocality, "[0-9]+°"),
          Locatie = case_when(!is.na(Hoek) ~ str_replace(pattern = Hoek,
                                                         replacement = "", 
                                                         string = Locatie),
@@ -201,7 +202,7 @@ gridcells <- st_intersection(locations_pre2018 %>%
                                st_as_sf(coords = c("long_vijver", "lat_vijver"), crs = 4326),
                              eea_grid) 
 gridcells <- gridcells %>% 
-  select(-CELLCODE) %>% 
+  select(-CELLCODE, -Type) %>% 
   st_drop_geometry()
 
 locations_pre2018 <- locations_pre2018 %>%
@@ -211,7 +212,7 @@ locations_pre2018 <- locations_pre2018 %>%
 ```{r finalise mapping}
 table(rawData$samplingProtocol)
 table(afvangsten_post2018$actie)
-table(afvangsten_post2018$Type)
+table(afvangsten_post2018$fuiktype)
 
 afvangsten_pre2018 <- rawData %>% 
   filter(!samplingProtocol %in% c("field observation")) %>% 
@@ -229,8 +230,185 @@ afvangsten_pre2018 <- rawData %>%
          fuiklengte = NA_integer_,
          `Invuller 2` = NA_character_,
          `Net verhoogd?` = NA,
-         Type = case_when("paired fyke nets")) %>%
-  select(all_of(names(afvangsten_post2018)))
+         Organisation = NA_character_, 
+         Opmerkingen = occurrenceRemarks,
+         fuiktype = case_when(samplingProtocol %in% c("paired fyke nets", "fike") ~ "dubbele fuik",
+                              TRUE ~ NA_character_),
+         correctie_factor = case_when(fuiktype == "dubbele fuik" ~ 1,
+                                      TRUE ~ 1)) 
+```
+
+```{r correct effort}
+# calculate the number of fuiken per event based on fuiknr & number of rows
+effort <- afvangsten_pre2018 %>%
+  select(gbifID, Datum, verbatimLocality, Locatie, fuikNr) %>%
+  mutate(fuiknummers = as.integer(str_extract_all(fuikNr, "[0-9]+")),
+         eventID = paste0(Datum, "_", Locatie)) %>% 
+  group_by(eventID) %>% 
+  mutate(no_fuiken_fuiknr = max(fuiknummers, na.rm = TRUE),
+         no_fuiken_rows = n()) %>%
+  ungroup()
+
+# Events with the same number of fuiken based on fuiknr & number of rows
+# These events are considered complete no rows should be added or removed
+effort_complete <- effort %>% 
+  filter(no_fuiken_fuiknr == no_fuiken_rows) %>% 
+  mutate(fuikNr = case_when(gbifID == 1135632954 ~ "Fuik 1",
+                            gbifID == 1135630741 ~ "Fuik 1",
+                            gbifID == 1135630669 ~ "Fuik 2",
+                            TRUE ~ fuikNr))
+
+# Events with different number of fuiken based on fuiknr & number of rows
+# These events are considered incomplete and need to be corrected
+effort_incomplete <- effort %>% 
+  filter(no_fuiken_fuiknr != no_fuiken_rows) 
+
+# Events with missing rows
+## These events are considered incomplete and need to be corrected by adding rows
+effort_incomplete_rows_missing_1 <- effort_incomplete %>% 
+  filter(no_fuiken_rows < no_fuiken_fuiknr)
+
+effort_incomplete_rows_missing_2 <- effort_incomplete %>%
+  filter(is.infinite(no_fuiken_fuiknr))
+
+effort_incomplete_rows_missing <- rbind(effort_incomplete_rows_missing_1, 
+                                        effort_incomplete_rows_missing_2) 
+
+## Add rows to match the number of fuiken based on no_fuiken_fuiknr
+events <- unique(effort_incomplete_rows_missing$eventID)
+
+effort_incomplete_rows_missing_corrected <- data.frame()
+
+for(e in events){
+  cat("Correcting event ", e, "\n")
   
+  temp_event <- effort_incomplete_rows_missing %>% 
+    filter(eventID == e) 
+  
+  # Extract list of fuiknummers
+  fuiknummers <- temp_event$fuiknummers
+  
+  # Create a list of fuiknummers that are missing
+  missing_fuiknummers <- setdiff(1:max(temp_event$no_fuiken_rows, na.rm = TRUE), fuiknummers)
+  
+  # Check if there are rows without fuikNr
+  temp_event_no_fuiknr <- temp_event %>% 
+    filter(is.na(fuikNr))
+  
+  if(nrow(temp_event_no_fuiknr) > 0 ){
+    cat("There are rows without fuikNr => adding fuikNr\n")
+    for(i in 1:nrow(temp_event_no_fuiknr)){
+      cat("Adding fuikNr (", missing_fuiknummers[i], ") for row ", i, "\n")
+      temp_event_no_fuiknr <- temp_event_no_fuiknr %>%
+        mutate(fuikNr = case_when(row_number() == i ~ paste0("Fuik ", missing_fuiknummers[i]),
+                                  TRUE ~ fuikNr),
+               fuiknummers = case_when(row_number() == i ~ missing_fuiknummers[i],
+                                  TRUE ~ fuiknummers))
+    }
+  }
+  
+  # Recalculate list of missing fuiknrs
+  fuiknummers <- temp_event_no_fuiknr$fuiknummers
+  
+  missing_fuiknummers <- subset(missing_fuiknummers, !missing_fuiknummers %in% fuiknummers)
+  
+  temp_event <- rbind(temp_event_no_fuiknr, temp_event %>% filter(!is.na(fuikNr)))
+  
+  if(length(missing_fuiknummers)>0){
+    cat("There are missing fuiknummers => adding rows\n")
+    for(m in missing_fuiknummers){
+      cat("Adding row for fuik ", m, "\n")
+      temp_event <- temp_event %>%
+        add_row(gbifID = NA_integer_,
+                Datum = unique(temp_event$Datum),
+                verbatimLocality = unique(temp_event$Locatie),
+                Locatie = unique(temp_event$Locatie),
+                fuikNr = paste0("Fuik ", m),
+                eventID = unique(temp_event$eventID),
+                fuiknummers = m)
+    }
+  }
+  
+  temp_event <- temp_event %>%
+    mutate(fuiknummers = as.integer(str_extract_all(fuikNr, "[0-9]+"))) %>% 
+    group_by(eventID) %>%
+    mutate(no_fuiken_fuiknr = max(fuiknummers, na.rm = TRUE),
+           no_fuiken_rows = n()) %>% 
+    ungroup()
+  
+  effort_incomplete_rows_missing_corrected <- rbind(effort_incomplete_rows_missing_corrected, temp_event)
+}
+
+test <- effort_incomplete_rows_missing_corrected %>% 
+  group_by(eventID, fuikNr) %>% 
+  add_tally() %>% 
+  filter(n > 1)
+
+# Events with additional rows
+## These events are considered incomplete and need to be corrected by increasing the fuiknr
+effort_incomplete_rows_additional <- effort_incomplete %>% 
+  filter(!is.na(no_fuiken_fuiknr), 
+         !is.infinite(no_fuiken_fuiknr),
+         no_fuiken_rows > no_fuiken_fuiknr) %>% 
+  left_join(afvangsten_pre2018 %>% select(gbifID, AM, AV, L00, L0, L1, L2, M1, 
+                                          M2, AX, MX, LX, larven_fuik, totaal_fuik), 
+            by = "gbifID") 
+
+## Increase the fuiknr to match the number of fuiken based on number of rows
+events <- unique(effort_incomplete_rows_additional$eventID)
+
+effort_incomplete_rows_additional_corrected <- data.frame()
+
+for(e in events){
+  temp_event <- effort_incomplete_rows_additional %>% 
+    filter(eventID == e) 
+  
+  temp_event <- temp_event %>%
+    mutate(fuikNr = paste0("Fuik ", row_number()),
+           fuiknummers = as.integer(str_extract_all(fuikNr, "[0-9]"))) %>% 
+    group_by(eventID) %>%
+    mutate(no_fuiken_fuiknr = max(fuiknummers, na.rm = TRUE)) %>% 
+    ungroup()
+  
+  effort_incomplete_rows_additional_corrected <- rbind(effort_incomplete_rows_additional_corrected, temp_event)
+}
+
+effort_incomplete_rows_additional_corrected <- effort_incomplete_rows_additional_corrected %>% 
+  select(-AM, -AV, -L00, -L0, -L1, -L2, -M1, -M2, -AX, -MX, -LX, -larven_fuik, -totaal_fuik)
+
+# Combine all corrected effort
+effort_corrected <- rbind(effort_complete, 
+                          effort_incomplete_rows_missing_corrected,
+                          effort_incomplete_rows_additional_corrected) %>%
+  rename(no_fuiken = no_fuiken_fuiknr) %>%
+  select(-no_fuiken_rows, -Locatie)
+```
+
+```{r select columns}
+afvangsten_pre2018_final <- effort_corrected %>% 
+  full_join(afvangsten_pre2018 %>% 
+              select(-eventID, -Locatie, -Datum, -fuikNr), by = "gbifID") %>% 
+  group_by(eventID) %>%
+  fill(locationID, lat_vijver, long_vijver, Type, actie, lat_grid, long_grid,
+       .direction = "downup") %>%
+  select(any_of(names(afvangsten_post2018))) %>% 
+  mutate(larven_corrected = larven_fuik * correctie_factor,
+         totaal_corrected = totaal_fuik * correctie_factor)
+```
+
+```{r final checks}
+duplicaten <- afvangsten_pre2018_final %>% 
+  group_by(eventID, fuikNr) %>% 
+  add_tally() %>% 
+  filter(n > 1) %>% 
+  write_csv("./interim/duplicaten_afvangsten_pre2018.csv")
+
+# remove duplicaten from afvangsten_pre2018_final
+afvangsten_pre2018_final <- afvangsten_pre2018_final %>% 
+  distinct(eventID, fuikNr, .keep_all = TRUE)
+```
+
+```{r export}
+write_csv(afvangsten_pre2018_final, "./interim/afvangsten_per_fuik_pre2018.csv")
 ```
 
