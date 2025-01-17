@@ -293,7 +293,7 @@ occurrence %<>% mutate(dwc_geodeticDatum = "WGS84")
 ### coordinateUncertaintyInMeters
 
 ```{r}
-occurrence %<>% mutate(dwc_coordinateUncertaintyInMeters = "30")
+occurrence %<>% mutate(dwc_coordinateUncertaintyInMeters = sqrt(2*500^2))
 ```
 ### Identification
 
