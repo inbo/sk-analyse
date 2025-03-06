@@ -388,10 +388,14 @@ afvangsten_per_fuik <- data_afvangsten %>%
                                    fuikNr))) %>% 
   ungroup()  %>% 
   group_by(Datum, Locatie, fuikNr, Hoek, fuiklengte, fuiktype, Tijdstempel) %>% 
-  mutate(larven_fuik = sum(L0,L1,L2, na.rm = TRUE),
+  mutate(larven_fuik = sum(L00,L0,L1,L2, na.rm = TRUE),
+         juveniel_fuik = sum(M1,M2, na.rm = TRUE),
+         adult_fuik = sum(AM,AV, na.rm = TRUE),
          totaal_fuik = sum(L00,L0,L1,L2,M1,M2,AM,AV, na.rm = TRUE),
          correctie_factor = 1,
          larven_corrected = larven_fuik*correctie_factor,
+         juveniel_corrected = juveniel_fuik*correctie_factor,
+         adult_corrected = adult_fuik*correctie_factor,
          totaal_fuik_corrected = totaal_fuik*correctie_factor) %>% 
   ungroup() %>% 
   select(-`Aantal fuiken (Totaal)`) %>% 
