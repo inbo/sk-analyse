@@ -1048,3 +1048,11 @@ m <- m %>%
              popup = ~occurrenceID)
 ```
 
+```{r EXTRA: combineer met pre2018 data}
+afvangsten_per_fuik_pre2018 <- read_csv("interim/afvangsten_per_fuik_pre2018.csv")
+
+afvangsten_per_fuik_combined <- bind_rows(afvangsten_per_fuik_pre2018, afvangsten_per_fuik)
+
+write_csv(afvangsten_per_fuik_combined, "interim/afvangsten_per_fuik_combined.csv")
+```
+
