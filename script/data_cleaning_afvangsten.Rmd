@@ -523,7 +523,7 @@ table(afvangsten_per_fuik$fuiktype, useNA = "ifany") #NA's zijn meestal dubbele 
 
 # set order of colums
 afvangsten_per_fuik <- afvangsten_per_fuik %>% 
-  select("Tijdstempel", "Invuller 2", "Datum", "Jaar", "Locatie", "actie", "fuiklengte", "Net verhoogd?", "lat_vijver", "long_vijver", "lat_grid", "long_grid", "Type", "locationID", "Organisation", "eventID", "no_fuiken", "fuikNr", "Opmerkingen", "L1", "L0", "L2", "M2", "AV", "AM", "L00", "M1", "Hoek", "fuiktype", "larven_fuik", "totaal_fuik", "correctie_factor", "larven_corrected", "totaal_fuik_corrected") %>% 
+  select("Tijdstempel", "Invuller 2", "Datum", "Jaar", "Locatie", "actie", "fuiklengte", "Net verhoogd?", "lat_vijver", "long_vijver", "lat_grid", "long_grid", "Type", "locationID", "Organisation", "eventID", "no_fuiken", "fuikNr", "Opmerkingen", "L1", "L0", "L2", "M2", "AV", "AM", "L00", "M1", "Hoek", "fuiktype", "larven_fuik", "juveniel_fuik", "adult_fuik","totaal_fuik", "correctie_factor", "larven_corrected", "juveniel_corrected", "adult_corrected", "totaal_fuik_corrected") %>% 
   arrange(desc("Tijdstempel"))
 
 #Export
@@ -1054,6 +1054,7 @@ afvangsten_per_fuik_pre2018 <- read_csv("interim/afvangsten_per_fuik_pre2018.csv
 afvangsten_per_fuik <- afvangsten_per_fuik %>% 
   mutate(MX = NA_integer_,
          AX = NA_integer_,
+         LX = NA_integer_,
          Datum = as.character(Datum),
          Jaar = as.integer(Jaar))
 
