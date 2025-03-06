@@ -1051,6 +1051,12 @@ m <- m %>%
 ```{r EXTRA: combineer met pre2018 data}
 afvangsten_per_fuik_pre2018 <- read_csv("interim/afvangsten_per_fuik_pre2018.csv")
 
+afvangsten_per_fuik <- afvangsten_per_fuik %>% 
+  mutate(MX = NA_integer_,
+         AX = NA_integer_,
+         Datum = as.character(Datum),
+         Jaar = as.integer(Jaar))
+
 afvangsten_per_fuik_combined <- bind_rows(afvangsten_per_fuik_pre2018, afvangsten_per_fuik)
 
 write_csv(afvangsten_per_fuik_combined, "interim/afvangsten_per_fuik_combined.csv")
