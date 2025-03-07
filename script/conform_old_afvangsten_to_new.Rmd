@@ -167,6 +167,8 @@ lifeStages_pre2018 <- verbatimData_pre2018 %>%
   pivot_wider(id_cols = gbifID, names_from = lifeStage, values_from = n, values_fn = min, values_fill = NA) %>% 
   group_by(gbifID) %>%
   mutate(larven_fuik = sum(L0, L00, L1, L2, LX, na.rm = TRUE),
+         juveniel_fuik = sum(M1, M2, MX, na.rm = TRUE),
+         adult_fuik = sum(AV, AM, AX, na.rm = TRUE),
          totaal_fuik = sum(M1, M2, MX,AV, AM, AX, larven_fuik, na.rm = TRUE))
 ```
 
@@ -351,7 +353,8 @@ effort_incomplete_rows_additional <- effort_incomplete %>%
          !is.infinite(no_fuiken_fuiknr),
          no_fuiken_rows > no_fuiken_fuiknr) %>% 
   left_join(afvangsten_pre2018 %>% select(gbifID, AM, AV, L00, L0, L1, L2, M1, 
-                                          M2, AX, MX, LX, larven_fuik, totaal_fuik), 
+                                          M2, AX, MX, LX, larven_fuik, totaal_fuik,
+                                          juveniel_fuik, adult_fuik), 
             by = "gbifID") 
 
 ## Increase the fuiknr to match the number of fuiken based on number of rows
@@ -374,7 +377,7 @@ for(e in events){
 }
 
 effort_incomplete_rows_additional_corrected <- effort_incomplete_rows_additional_corrected %>% 
-  select(-AM, -AV, -L00, -L0, -L1, -L2, -M1, -M2, -AX, -MX, -LX, -larven_fuik, -totaal_fuik)
+  select(-AM, -AV, -L00, -L0, -L1, -L2, -M1, -M2, -AX, -MX, -LX, -larven_fuik, -totaal_fuik, -juveniel_fuik, -adult_fuik)
 
 # Combine all corrected effort
 effort_corrected <- rbind(effort_complete, 
@@ -393,7 +396,9 @@ afvangsten_pre2018_final <- effort_corrected %>%
        .direction = "downup") %>%
   select(any_of(names(afvangsten_post2018))) %>% 
   mutate(larven_corrected = larven_fuik * correctie_factor,
-         totaal_corrected = totaal_fuik * correctie_factor)
+         totaal_corrected = totaal_fuik * correctie_factor,
+         juveniel_corrected = juveniel_fuik * correctie_factor,
+         adult_corrected = adult_fuik * correctie_factor)
 ```
 
 ```{r final checks}
