@@ -1058,8 +1058,22 @@ afvangsten_per_fuik <- afvangsten_per_fuik %>%
          Datum = as.character(Datum),
          Jaar = as.integer(Jaar))
 
-afvangsten_per_fuik_combined <- bind_rows(afvangsten_per_fuik_pre2018, afvangsten_per_fuik)
+afvangsten_per_fuik_combined <- bind_rows(afvangsten_per_fuik_pre2018, afvangsten_per_fuik) %>% 
+   mutate(location_temp = as.integer(substr(eventID, 12, 16)))
 
-write_csv(afvangsten_per_fuik_combined, "interim/afvangsten_per_fuik_combined.csv")
+straalmolen_locations <- afvangsten_per_fuik_combined %>% 
+  filter(!is.na(location_temp)) %>% 
+  distinct(location_temp) %>%
+  pull()
+ 
+afvangsten_per_fuik_straalmolen <- afvangsten_per_fuik_combined %>% 
+  filter(location_temp %in% straalmolen_locations) %>% 
+  select(-location_temp) %>% 
+  write_csv("interim/afvangsten_per_fuik_straalmolen.csv")
+
+afvangsten_per_fuik_andere <- afvangsten_per_fuik_combined %>% 
+  filter(!location_temp %in% straalmolen_locations) %>% 
+  select(-location_temp) %>% 
+  write_csv("interim/afvangsten_per_fuik_combined.csv")
 ```
 
