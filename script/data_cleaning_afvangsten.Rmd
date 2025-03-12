@@ -195,7 +195,7 @@ data_afvangsten <- data %>%
 # We tellen het aantal fuiken op en voegen eventID toe
 data_afvangsten_long <- data_afvangsten %>% 
   filter(`Aantal fuiken (Totaal)` == 1) %>% 
-  mutate(eventID = paste(Datum, Locatie, sep = "_")) %>% 
+  mutate(eventID = paste(format(as.Date(Datum), "%d-%m-%Y"), Locatie, sep = "_")) %>% 
   group_by(eventID, `Wat wil je melden`) %>%
   mutate(`Aantal fuiken (Totaal)` = sum(as.numeric(`Aantal fuiken (Totaal)`), na.rm = TRUE)) %>% 
   ungroup()
@@ -275,7 +275,7 @@ for(e in events_ids){
 # Deze events hebben data verspreid over meerdere kolommen
 data_afvangsten_wide <- data_afvangsten %>% 
   filter(`Aantal fuiken (Totaal)` != 1) %>% 
-  mutate(eventID = paste(Datum, Locatie, sep = "_")) %>% 
+  mutate(eventID = paste(format(as.Date(Datum), "%d-%m-%Y"), Locatie, sep = "_")) %>% 
   group_by(eventID) %>% 
   add_tally() %>%
   ungroup()
@@ -799,7 +799,7 @@ data_bijvangsten <- data %>%
          -`Eind vangstperiode`,
          -Gebied, 
          -Nummer) %>% 
-  mutate(eventID = paste(Datum, Locatie, sep = "_")) %>% 
+  mutate(eventID = paste(format(as.Date(Datum), "%d-%m-%Y"), Locatie, sep = "_")) %>% 
   left_join(events, by = c("eventID", "Wat wil je melden")) %>% 
   pivot_longer(contains("Fuik", ignore.case = FALSE), 
                values_to = "value",
