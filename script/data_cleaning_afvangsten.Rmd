@@ -167,8 +167,9 @@ table(data$`Wat wil je melden`)
 
 #verwijder niet gekoppelde acties & onnodige kolommen
 data_afvangsten <- data %>% 
-  filter(!is.na(locationID),
-         grepl("Afvangst", `Wat wil je melden`))%>% 
+  tidylog::filter(!is.na(locationID),
+         !is.na(Tijdstempel),
+         grepl("Afvangst", `Wat wil je melden`)) %>% 
   select(-contains("Vijver", ignore.case = FALSE), 
          -`E-mailadres`, 
          -`Aantal werknemers`,
