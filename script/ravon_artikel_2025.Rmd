@@ -96,31 +96,17 @@ temp %>%
   labs(title = "Trend in de vangst per eenheid van inspanning per jaar per vijver",
        y = "Totale vangst per fuik per jaar") # Y-as label aanpassen
 
-
-+
-  ggsave("./interim/figuren_ravon_artikel/2025/afvangsten_per_fuik_combined_per_vijver.png", width = 10, height = 6, units = "in")
-
-temp %>% 
-  ggplot(aes(x = jaar, y = mean_vangst)) +
-  geom_point() +
-  geom_errorbar(aes(ymin = mean_vangst - se_vangst, 
-                   ymax = mean_vangst + se_vangst), 
-               width = 0.2) +  # Voegt foutbalken toe
-  geom_smooth(method = "lm", se = FALSE, color = "red") +
-  facet_wrap(~Locatie, scales = "free") +
-  labs(title = "Trend in de gemiddelde vangst per jaar per vijver",
-       y = "Gemiddelde vangst per fuik per jaar") # Y-as label aanpassen
-
+  ggsave("./interim/figuren_ravon_artikel/2025/Trend_VPEI_jaar_vijver.png", width = 10, height = 6, units = "in")
 
 summary(temp$jaren)
-```
 
-%>%
-  ggplot(aes(x = year, y = totaal_fuik)) +
-  geom_point() +
-  geom_smooth(method = "lm", se = FALSE) +
-  facet_wrap(~locationID) +
-  labs(title = "Totaal aantal stierkikkers per jaar per vijver",
-       subtitle = "Trendlijn toegevoegd") +
-  theme_minimal() +
-  ggsave("./interim/figuren_ravon_artikel/2025/afvangsten_per_fuik_combined_per_vijver.png", width = 10, height = 6, units = "in")
+richtingscoefficienten <- temp %>%
+  group_by(Locatie) %>%
+  summarise(
+    richtingscoefficient = coef(lm(cpue ~ jaar))[2] # Helling berekenen
+  ) %>%
+  ungroup() 
+
+mean(richtingscoefficienten$richtingscoefficient, na.rm = TRUE)
+sd(richtingscoefficienten$richtingscoefficient, na.rm = TRUE)/sqrt(nrow(richtingscoefficienten))
+```
