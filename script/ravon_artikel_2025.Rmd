@@ -1,0 +1,34 @@
+---
+title: "Ravon artikel 2025"
+author: "Sander Devisscher, Teun Everts, Rein Brys"
+date: "2025-03-12"
+output: html_document
+---
+
+```{r}
+library(tidyverse)
+```
+
+```{r read data}
+afvangsten_per_fuik_combined <- read_csv("interim/afvangsten_per_fuik_combined.csv")
+```
+
+Staaf grafiek totaal vangsten per jaar
+met cumulatieve lijn (op andere as)
+en aantal vijvers per jaar als label boven de bar
+```{r}
+afvangsten_per_fuik_combined %>%
+  group_by(Jaar) %>%
+  summarise(totaal_vangst = sum(totaal_fuik, na.rm = TRUE),
+            cumulatief = cumsum(totaal_vangst),
+            aantal_vijvers = n_distinct(locationID)) %>%
+  ggplot(aes(x = Jaar, y = totaal_vangst)) +
+  geom_col() +
+  geom_line(aes(y = cumulatief), color = "red") +
+  geom_text(aes(label = aantal_vijvers), vjust = -1) +
+  labs(title = "Totaal vangsten per jaar",
+       x = "Jaar",
+       y = "Totaal vangst") +
+  theme_minimal()
+```
+
