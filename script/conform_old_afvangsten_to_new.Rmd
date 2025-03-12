@@ -245,7 +245,7 @@ afvangsten_pre2018 <- rawData %>%
 effort <- afvangsten_pre2018 %>%
   select(gbifID, Datum, verbatimLocality, Locatie, fuikNr) %>%
   mutate(fuiknummers = as.integer(str_extract_all(fuikNr, "[0-9]+")),
-         eventID = paste0(Datum, "_", Locatie)) %>% 
+         eventID = paste0(format(as.Date(Datum), "%d-%m-%Y"), "_", Locatie)) %>% 
   group_by(eventID) %>% 
   mutate(no_fuiken_fuiknr = max(fuiknummers, na.rm = TRUE),
          no_fuiken_rows = n()) %>%
