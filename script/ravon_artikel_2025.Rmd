@@ -52,5 +52,7 @@ afvangsten_per_fuik_combined %>%
        subtitle = "Aantal beheerde vijvers weergegeven boven elke bar") +
   guides(fill = guide_legend(order = 1), # Volgorde van de legenda items
          color = guide_legend(order = 2)) # Volgorde van de legenda items
+
+  ggsave("./interim/figuren_ravon_artikel/2025/afvangsten_per_fuik_combined.png", width = 10, height = 6, units = "in")
 ```
 
