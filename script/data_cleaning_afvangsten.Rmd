@@ -405,7 +405,9 @@ afvangsten_per_fuik <- data_afvangsten %>%
                                 TRUE ~ max_fuikNr)) %>% 
   group_by(eventID, fuiktype) %>% 
   mutate(max_fuikNr = max(max_fuikNr, na.rm = TRUE),
-         no_fuiken = max(no_fuiken, na.rm = TRUE))
+         no_fuiken = max(no_fuiken, na.rm = TRUE)) %>% 
+  mutate(Jaar = case_when(is.na(Jaar) ~ as.character(year(Datum)),
+                          TRUE ~ Jaar))
 
 # filter events with max_fuikNr > 1 & with only fuikNr == "Fuik 1"
 # iterate every row to increase upto max_fuikNr
