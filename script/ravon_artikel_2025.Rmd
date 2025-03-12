@@ -41,7 +41,7 @@ afvangsten_per_fuik_combined %>%
     limits = c(2009.5, 2024.5),
     breaks = seq(2010, 2024, by = 2)
   ) +
-  scale_fill_manual(values = c("Totale vangst" = "#8C8F3A"), 
+  scale_fill_manual(values = c("Totale vangst" = "darkgrey"), 
                     name = "Legenda") + # Naam van de legenda instellen
   scale_color_manual(values = c("Cumulatieve vangst" = "red"),
                      name = "") + # Naam van de legenda instellen
