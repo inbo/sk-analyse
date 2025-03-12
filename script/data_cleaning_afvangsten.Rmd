@@ -1058,8 +1058,9 @@ afvangsten_per_fuik <- afvangsten_per_fuik %>%
          Datum = as.character(Datum),
          Jaar = as.integer(Jaar))
 
-afvangsten_per_fuik_combined <- bind_rows(afvangsten_per_fuik_pre2018, afvangsten_per_fuik) %>% 
-   mutate(location_temp = as.integer(substr(eventID, 12, 16)))
+afvangsten_per_fuik_combined <- bind_rows(afvangsten_per_fuik, afvangsten_per_fuik_pre2018) %>% 
+   mutate(location_temp = as.integer(substr(eventID, 12, 16))) %>% 
+  tidylog::distinct(eventID, fuikNr, .keep_all = TRUE) # Exclude overlap between Pre2018 and Post2018 data => in case of overlap, keep the Post2018 data. 
 
 straalmolen_locations <- afvangsten_per_fuik_combined %>% 
   filter(!is.na(location_temp)) %>% 
