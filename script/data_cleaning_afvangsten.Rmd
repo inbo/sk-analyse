@@ -327,8 +327,6 @@ data_afvangsten_wide <- bind_rows(data_afvangsten_wide_single,
 table(data_afvangsten_wide$eventID, useNA = "ifany")
 ```
 
-
-
 ```{r datacleaning: events - combine}
 # Combineer data
 data_afvangsten <- bind_rows(data_afvangsten_wide,
@@ -390,10 +388,14 @@ afvangsten_per_fuik <- data_afvangsten %>%
                                    fuikNr))) %>% 
   ungroup()  %>% 
   group_by(Datum, Locatie, fuikNr, Hoek, fuiklengte, fuiktype, Tijdstempel) %>% 
-  mutate(larven_fuik = sum(L0,L1,L2, na.rm = TRUE),
+  mutate(larven_fuik = sum(L00,L0,L1,L2, na.rm = TRUE),
+         juveniel_fuik = sum(M1,M2, na.rm = TRUE),
+         adult_fuik = sum(AM,AV, na.rm = TRUE),
          totaal_fuik = sum(L00,L0,L1,L2,M1,M2,AM,AV, na.rm = TRUE),
          correctie_factor = 1,
          larven_corrected = larven_fuik*correctie_factor,
+         juveniel_corrected = juveniel_fuik*correctie_factor,
+         adult_corrected = adult_fuik*correctie_factor,
          totaal_fuik_corrected = totaal_fuik*correctie_factor) %>% 
   ungroup() %>% 
   select(-`Aantal fuiken (Totaal)`) %>% 
@@ -521,7 +523,7 @@ table(afvangsten_per_fuik$fuiktype, useNA = "ifany") #NA's zijn meestal dubbele 
 
 # set order of colums
 afvangsten_per_fuik <- afvangsten_per_fuik %>% 
-  select("Tijdstempel", "Invuller 2", "Datum", "Jaar", "Locatie", "actie", "fuiklengte", "Net verhoogd?", "lat_vijver", "long_vijver", "lat_grid", "long_grid", "Type", "locationID", "Organisation", "eventID", "no_fuiken", "fuikNr", "Opmerkingen", "L1", "L0", "L2", "M2", "AV", "AM", "L00", "M1", "Hoek", "fuiktype", "larven_fuik", "totaal_fuik", "correctie_factor", "larven_corrected", "totaal_fuik_corrected") %>% 
+  select("Tijdstempel", "Invuller 2", "Datum", "Jaar", "Locatie", "actie", "fuiklengte", "Net verhoogd?", "lat_vijver", "long_vijver", "lat_grid", "long_grid", "Type", "locationID", "Organisation", "eventID", "no_fuiken", "fuikNr", "Opmerkingen", "L1", "L0", "L2", "M2", "AV", "AM", "L00", "M1", "Hoek", "fuiktype", "larven_fuik", "juveniel_fuik", "adult_fuik","totaal_fuik", "correctie_factor", "larven_corrected", "juveniel_corrected", "adult_corrected", "totaal_fuik_corrected") %>% 
   arrange(desc("Tijdstempel"))
 
 #Export
@@ -1044,5 +1046,34 @@ m <- m %>%
              stroke = FALSE,
              fillOpacity = 0.5,
              popup = ~occurrenceID)
+```
+
+```{r EXTRA: combineer met pre2018 data}
+afvangsten_per_fuik_pre2018 <- read_csv("interim/afvangsten_per_fuik_pre2018.csv")
+
+afvangsten_per_fuik <- afvangsten_per_fuik %>% 
+  mutate(MX = NA_integer_,
+         AX = NA_integer_,
+         LX = NA_integer_,
+         Datum = as.character(Datum),
+         Jaar = as.integer(Jaar))
+
+afvangsten_per_fuik_combined <- bind_rows(afvangsten_per_fuik_pre2018, afvangsten_per_fuik) %>% 
+   mutate(location_temp = as.integer(substr(eventID, 12, 16)))
+
+straalmolen_locations <- afvangsten_per_fuik_combined %>% 
+  filter(!is.na(location_temp)) %>% 
+  distinct(location_temp) %>%
+  pull()
+ 
+afvangsten_per_fuik_straalmolen <- afvangsten_per_fuik_combined %>% 
+  filter(location_temp %in% straalmolen_locations) %>% 
+  select(-location_temp) %>% 
+  write_csv("interim/afvangsten_per_fuik_straalmolen.csv")
+
+afvangsten_per_fuik_andere <- afvangsten_per_fuik_combined %>% 
+  filter(!location_temp %in% straalmolen_locations) %>% 
+  select(-location_temp) %>% 
+  write_csv("interim/afvangsten_per_fuik_combined.csv")
 ```
 
