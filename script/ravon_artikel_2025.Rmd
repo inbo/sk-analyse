@@ -89,6 +89,9 @@ temp <- temp %>%
   filter(locationID %in% broedpoelen$locationID)
 
 temp %>%
+  mutate(Locatie = case_when(Locatie == "bospoel" ~ "bospoel*",
+                             Locatie == "driehoek" ~ "driehoek*",
+                             TRUE ~ Locatie)) %>%
   ggplot(aes(x = jaar, y = cpue)) +
   geom_point(aes(fill = cpue == 0), shape = 21, size = 2, stroke = 0.5) + # Gebruik shape 21 voor gevulde cirkels met rand
   scale_fill_manual(values = c("TRUE" = "white", "FALSE" = "black"), guide = FALSE) +
