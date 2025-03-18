@@ -90,17 +90,18 @@ temp <- temp %>%
 
 temp %>%
   ggplot(aes(x = jaar, y = cpue)) +
-  geom_point(aes(color = cpue == 0), size = 1.5) + # Maak punten wit als CPUE 0 is
-  scale_color_manual(values = c("TRUE" = "white", "FALSE" = "black"), guide = FALSE) +
-  scale_fill_manual(values = "black", guide = FALSE) +
+  geom_point(aes(fill = cpue == 0), shape = 21, size = 2, stroke = 0.5) + # Gebruik shape 21 voor gevulde cirkels met rand
+  scale_fill_manual(values = c("TRUE" = "white", "FALSE" = "black"), guide = FALSE) +
   geom_smooth(method = "lm", se = FALSE, color = "red") +
   facet_wrap(~Locatie, scales = "free") +
-  scale_x_continuous(breaks = seq(min(temp$jaar), max(temp$jaar), by = 1)) + # Alleen hele getallen op x-as
+  scale_x_continuous(breaks = function(x) seq(ceiling(min(x)), floor(max(x)), by = 1)) + # Alleen hele getallen op x-as
   labs(
     title = "Trend in de vangst per eenheid van inspanning per jaar per vijver",
-    x = "Jaar", # x-as label aanpassen
-    y = "Totale vangst per fuik per dag" # y-as label aanpassen
-  )
+    x = "Jaar",
+    y = "Totale vangst per fuik per dag"
+  ) +
+  theme_minimal() # Voor een schonere look
+
 
   ggsave("./interim/figuren_ravon_artikel/2025/Trend_VPEI_jaar_vijver.png", width = 10, height = 6, units = "in")
 
