@@ -89,12 +89,18 @@ temp <- temp %>%
   filter(locationID %in% broedpoelen$locationID)
 
 temp %>%
- ggplot(aes(x = jaar, y = cpue)) +
-  geom_point() +
+  ggplot(aes(x = jaar, y = cpue)) +
+  geom_point(aes(color = cpue == 0), size = 1.5) + # Maak punten wit als CPUE 0 is
+  scale_color_manual(values = c("TRUE" = "white", "FALSE" = "black"), guide = FALSE) +
+  scale_fill_manual(values = "black", guide = FALSE) +
   geom_smooth(method = "lm", se = FALSE, color = "red") +
   facet_wrap(~Locatie, scales = "free") +
-  labs(title = "Trend in de vangst per eenheid van inspanning per jaar per vijver",
-       y = "Totale vangst per fuik per jaar") # Y-as label aanpassen
+  scale_x_continuous(breaks = seq(min(temp$jaar), max(temp$jaar), by = 1)) + # Alleen hele getallen op x-as
+  labs(
+    title = "Trend in de vangst per eenheid van inspanning per jaar per vijver",
+    x = "Jaar", # x-as label aanpassen
+    y = "Totale vangst per fuik per dag" # y-as label aanpassen
+  )
 
   ggsave("./interim/figuren_ravon_artikel/2025/Trend_VPEI_jaar_vijver.png", width = 10, height = 6, units = "in")
 
