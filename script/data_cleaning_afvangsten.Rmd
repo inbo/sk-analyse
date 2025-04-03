@@ -145,12 +145,12 @@ data <- data %>%
 
 Organisation_unknown <- data %>% 
   filter(Organisation %in% c("Unknown", "NA")) %>% 
-  select(Tijdstempel, `E-mailadres`, Invuller, Organisation)
+  select(Tijdstempel, `E-mailadres`, Invuller, `Invuller 2`, Organisation)
 
 write_csv(Organisation_unknown, "./interim/Organisation_unknown.csv")
 
-data <- data %>% 
-  filter(!Organisation %in% c("Unknown", "NA"))
+# data <- data %>% 
+#   filter(!Organisation %in% c("Unknown", "NA"))
 ```
 
 ## Datacleaning
@@ -163,12 +163,19 @@ fuiklengte == "13m" ~ 0.75,
 TRUE ~ 1))
 
 ```{r datacleaning - general}
-table(data$`Wat wil je melden`)
+table(data$`Wat wil je melden`, useNA = "ifany")
+table(data$locationID, useNA = "ifany")
+
+missing_locationID <- data %>% 
+  filter(is.na(locationID)) %>% 
+  distinct(Locatie)
+
+missing_timestamp <- data %>% 
+  filter(is.na(Tijdstempel)) 
 
 #verwijder niet gekoppelde acties & onnodige kolommen
 data_afvangsten <- data %>% 
-  tidylog::filter(!is.na(locationID),
-         !is.na(Tijdstempel),
+  tidylog::filter(!is.na(Tijdstempel),
          grepl("Afvangst", `Wat wil je melden`)) %>% 
   select(-contains("Vijver", ignore.case = FALSE), 
          -`E-mailadres`, 
@@ -344,7 +351,7 @@ events <- data_afvangsten %>%
 
 ```{r datacleaning - afvangsten per fuik}
 afvangsten_per_fuik <- data_afvangsten %>%  
-  left_join(events, by = c("eventID", "Wat wil je melden")) %>% 
+  tidylog::left_join(events, by = c("eventID", "Wat wil je melden")) %>% 
   filter(!is.na(Tijdstempel)) %>% 
   group_by(Datum, Locatie) %>% 
   pivot_longer(contains("Fuik", ignore.case = FALSE), 
