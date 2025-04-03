@@ -487,7 +487,7 @@ afvangsten_per_fuik <- data_afvangsten %>%
 # filter events with max_fuikNr > 1 & with only fuikNr == "Fuik 1"
 # iterate every row to increase upto max_fuikNr
 static_fuikNr <- afvangsten_per_fuik %>% 
-  filter(fuikNr == "Fuik 1" & max_fuikNr > 1) %>% 
+  filter(fuikNr == "Fuik 1" & no_fuiken != max_fuikNr) %>% 
   group_by(eventID) %>% 
   add_tally() %>% 
   ungroup() %>% 
@@ -515,7 +515,7 @@ for(e in events_ids){
     # iterate accross rows
     i <- 1
     
-    max_fuikNr <- max(temp_sub$max_fuikNr)
+    max_fuikNr <- max(temp_sub$no_fuiken)
     while(i <= max_fuikNr){
       print(paste0(i, "/", max_fuikNr))
       
