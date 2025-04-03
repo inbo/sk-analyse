@@ -582,8 +582,14 @@ static_fuikNr <- temp_recomb %>%
 dynamic_fuikNr <- afvangsten_per_fuik %>% 
   filter(!eventID %in% static_fuikNr$eventID)
 
-afvangsten_per_fuik <- rbind(static_fuikNr,
-                             dynamic_fuikNr)
+afvangsten_per_fuik_recomb <- rbind(static_fuikNr,
+                                    dynamic_fuikNr)
+
+test <- afvangsten_per_fuik %>% 
+  anti_join(afvangsten_per_fuik_recomb) %>% 
+  distinct(eventID, fuiktype, fuikNr, L1, L0, L00, L2, M1, M2, AM, AV, .keep_all = TRUE)
+
+afvangsten_per_fuik <- rbind(afvangsten_per_fuik_recomb, test)
 
 false_zeroes <- afvangsten_per_fuik %>% 
   filter(fuikNr2 > max_fuikNr,
