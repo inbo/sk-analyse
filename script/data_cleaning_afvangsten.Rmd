@@ -481,8 +481,6 @@ afvangsten_per_fuik <- data_afvangsten %>%
   group_by(eventID, fuiktype) %>% 
   mutate(max_fuikNr = max(fuikNr2, na.rm = TRUE),
          no_fuiken = max(no_fuiken, na.rm = TRUE)) %>% 
-  mutate(Jaar = case_when(is.na(Jaar) ~ as.character(lubridate::year(Datum)),
-                          TRUE ~ Jaar)) %>% 
   mutate(max_fuikNr = case_when(is.infinite(max_fuikNr) ~ fuikNr2,
                                 TRUE ~ max_fuikNr)) 
 
