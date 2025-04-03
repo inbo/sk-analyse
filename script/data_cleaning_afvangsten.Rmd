@@ -428,7 +428,7 @@ afvangsten_per_fuik <- data_afvangsten %>%
                values_to = "value",
                values_ptypes = character()) %>% 
   filter(!is.na(value)) %>% 
-  mutate(value = case_when(value == "-1" ~ as.character("NA"),
+  mutate(value = case_when(value == "-1" ~ NA_character_,
                            TRUE ~ value)) %>% 
   separate(name, c("fuikNr", "type"), " - ",
            convert = TRUE) %>% 
@@ -478,13 +478,13 @@ afvangsten_per_fuik <- data_afvangsten %>%
   ungroup() %>% 
   select(-`Aantal fuiken (Totaal)`) %>% 
   arrange(Datum, Locatie, fuikNr) %>% 
-  mutate(max_fuikNr = case_when(is.infinite(max_fuikNr) ~ fuikNr2,
-                                TRUE ~ max_fuikNr)) %>% 
   group_by(eventID, fuiktype) %>% 
-  mutate(max_fuikNr = max(max_fuikNr, na.rm = TRUE),
+  mutate(max_fuikNr = max(fuikNr2, na.rm = TRUE),
          no_fuiken = max(no_fuiken, na.rm = TRUE)) %>% 
   mutate(Jaar = case_when(is.na(Jaar) ~ as.character(lubridate::year(Datum)),
-                          TRUE ~ Jaar))
+                          TRUE ~ Jaar)) %>% 
+  mutate(max_fuikNr = case_when(is.infinite(max_fuikNr) ~ fuikNr2,
+                                TRUE ~ max_fuikNr)) 
 
 # filter events with max_fuikNr > 1 & with only fuikNr == "Fuik 1"
 # iterate every row to increase upto max_fuikNr
