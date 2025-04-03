@@ -484,120 +484,120 @@ afvangsten_per_fuik <- data_afvangsten %>%
   mutate(max_fuikNr = case_when(is.infinite(max_fuikNr) ~ fuikNr2,
                                 TRUE ~ max_fuikNr)) 
 
-# filter events with max_fuikNr > 1 & with only fuikNr == "Fuik 1"
-# iterate every row to increase upto max_fuikNr
-static_fuikNr <- afvangsten_per_fuik %>% 
-  filter(fuikNr == "Fuik 1" & max_fuikNr > 1) %>% 
-  group_by(eventID) %>% 
-  add_tally() %>% 
-  ungroup() %>% 
-  filter(n > 1) %>% 
-  filter(!fuiktype %in% c("salamanderfuik drijvend NA", "salamanderfuik bodem NA")) %>% 
-  filter(!Datum == "2016-07-27") %>% 
-  arrange(eventID, fuiktype)
-
-events_ids <- unique(static_fuikNr$eventID)
-temp_recomb <- data.frame()
-temp_recomb2 <- data.frame()
-
-for(e in events_ids){
-  # extract data for event
-  temp <- static_fuikNr %>% 
-    filter(eventID == e)
-  
-  # extract fuiktypes
-  fuiktypes <- unique(temp$fuiktype)
-  
-  for(f in fuiktypes){
-    temp_sub <- temp %>% 
-      filter(fuiktype == f)
-    
-    # iterate accross rows
-    i <- 1
-    
-    max_fuikNr <- max(temp_sub$max_fuikNr)
-    while(i <= max_fuikNr){
-      print(paste0(i, "/", max_fuikNr))
-      
-      if(nrow(temp_sub[i,]) == 0){
-        print("test")
-      }
-      
-      temp_sub[i,] <- temp_sub[i,] %>% 
-        mutate(fuikNr = paste("Fuik", i, sep = " "))
-      i <- i + 1
-    }
-    
-    if(NA %in% temp_sub$eventID){
-      temp_sub <- temp_sub %>% 
-        mutate(eventID = eventID[1],
-               fuiktype = fuiktype[1],
-               Tijdstempel = Tijdstempel[1],
-               `Invuller 2` = `Invuller 2`[1],
-               Datum = Datum[1],
-               Jaar = Jaar[1],
-               actie = actie[1],
-               fuiklengte = fuiklengte[1],
-               `Net verhoogd?` = `Net verhoogd?`[1],
-               Type = Type[1],
-               locationID = locationID[1],
-               lat_vijver = lat_vijver[1],
-               long_vijver = long_vijver[1],
-               lat_grid = lat_grid[1],
-               long_grid = long_grid[1],
-               Organisation = Organisation[1],
-               max_fuikNr = max_fuikNr[1],
-               no_fuiken = no_fuiken[1],
-               fuiktype = fuiktype[1],
-               totaal_fuik = totaal_fuik[1],
-               totaal_fuik_corrected = totaal_fuik_corrected[1],
-               Locatie = Locatie[1])
-    }
-    temp_recomb <- bind_rows(temp_recomb, temp_sub)
-    remove(temp_sub)
-  }
-}
-
-temp_recomb <- temp_recomb %>% 
-  mutate(fuiktype_event = paste(fuiktype, eventID, sep = "_")) 
-
-static_fuikNr <- static_fuikNr %>% 
-  mutate(fuiktype_event = paste(fuiktype, eventID, sep = "_"))
-
-testthat::expect_true(nrow(events_missing <- static_fuikNr %>% 
-                             filter(!eventID %in% temp_recomb$eventID)) == 0)
-
-testthat::expect_true(nrow(locations_missing <- static_fuikNr %>% 
-                             filter(!locationID %in% temp_recomb$locationID)) == 0)
-
-testthat::expect_true(nrow(dates_missing <- static_fuikNr %>% 
-                             filter(!Datum %in% temp_recomb$Datum)) == 0)
-
-testthat::expect_true(nrow(fuiktype_event_missing <- static_fuikNr %>%
-                             filter(!fuiktype_event %in% temp_recomb$fuiktype_event)) == 0)
-
-static_fuikNr <- temp_recomb %>% 
-  select(-fuiktype_event, -n)
-
-dynamic_fuikNr <- afvangsten_per_fuik %>% 
-  filter(!eventID %in% static_fuikNr$eventID)
-
-afvangsten_per_fuik <- rbind(static_fuikNr,
-                             dynamic_fuikNr)
-
-false_zeroes <- afvangsten_per_fuik %>% 
-  filter(fuikNr2 > max_fuikNr,
-         totaal_fuik > 0)
-
-afvangsten_per_fuik <- afvangsten_per_fuik %>% 
-  filter(fuikNr2 <= max_fuikNr) %>% 
-  dplyr::select(- fuikNr2,
-                - max_fuikNr) %>% 
-  ungroup()
-
-# Check data per fuik
-table(afvangsten_per_fuik$actie, useNA = "ifany")
-table(afvangsten_per_fuik$fuiktype, useNA = "ifany") #NA's zijn meestal dubbele fuiken maar niet 100%
+# # filter events with max_fuikNr > 1 & with only fuikNr == "Fuik 1"
+# # iterate every row to increase upto max_fuikNr
+# static_fuikNr <- afvangsten_per_fuik %>% 
+#   filter(fuikNr == "Fuik 1" & max_fuikNr > 1) %>% 
+#   group_by(eventID) %>% 
+#   add_tally() %>% 
+#   ungroup() %>% 
+#   filter(n > 1) %>% 
+#   filter(!fuiktype %in% c("salamanderfuik drijvend NA", "salamanderfuik bodem NA")) %>% 
+#   filter(!Datum == "2016-07-27") %>% 
+#   arrange(eventID, fuiktype)
+# 
+# events_ids <- unique(static_fuikNr$eventID)
+# temp_recomb <- data.frame()
+# temp_recomb2 <- data.frame()
+# 
+# for(e in events_ids){
+#   # extract data for event
+#   temp <- static_fuikNr %>% 
+#     filter(eventID == e)
+#   
+#   # extract fuiktypes
+#   fuiktypes <- unique(temp$fuiktype)
+#   
+#   for(f in fuiktypes){
+#     temp_sub <- temp %>% 
+#       filter(fuiktype == f)
+#     
+#     # iterate accross rows
+#     i <- 1
+#     
+#     max_fuikNr <- max(temp_sub$max_fuikNr)
+#     while(i <= max_fuikNr){
+#       print(paste0(i, "/", max_fuikNr))
+#       
+#       if(nrow(temp_sub[i,]) == 0){
+#         print("test")
+#       }
+#       
+#       temp_sub[i,] <- temp_sub[i,] %>% 
+#         mutate(fuikNr = paste("Fuik", i, sep = " "))
+#       i <- i + 1
+#     }
+#     
+#     if(NA %in% temp_sub$eventID){
+#       temp_sub <- temp_sub %>% 
+#         mutate(eventID = eventID[1],
+#                fuiktype = fuiktype[1],
+#                Tijdstempel = Tijdstempel[1],
+#                `Invuller 2` = `Invuller 2`[1],
+#                Datum = Datum[1],
+#                Jaar = Jaar[1],
+#                actie = actie[1],
+#                fuiklengte = fuiklengte[1],
+#                `Net verhoogd?` = `Net verhoogd?`[1],
+#                Type = Type[1],
+#                locationID = locationID[1],
+#                lat_vijver = lat_vijver[1],
+#                long_vijver = long_vijver[1],
+#                lat_grid = lat_grid[1],
+#                long_grid = long_grid[1],
+#                Organisation = Organisation[1],
+#                max_fuikNr = max_fuikNr[1],
+#                no_fuiken = no_fuiken[1],
+#                fuiktype = fuiktype[1],
+#                totaal_fuik = totaal_fuik[1],
+#                totaal_fuik_corrected = totaal_fuik_corrected[1],
+#                Locatie = Locatie[1])
+#     }
+#     temp_recomb <- bind_rows(temp_recomb, temp_sub)
+#     remove(temp_sub)
+#   }
+# }
+# 
+# temp_recomb <- temp_recomb %>% 
+#   mutate(fuiktype_event = paste(fuiktype, eventID, sep = "_")) 
+# 
+# static_fuikNr <- static_fuikNr %>% 
+#   mutate(fuiktype_event = paste(fuiktype, eventID, sep = "_"))
+# 
+# testthat::expect_true(nrow(events_missing <- static_fuikNr %>% 
+#                              filter(!eventID %in% temp_recomb$eventID)) == 0)
+# 
+# testthat::expect_true(nrow(locations_missing <- static_fuikNr %>% 
+#                              filter(!locationID %in% temp_recomb$locationID)) == 0)
+# 
+# testthat::expect_true(nrow(dates_missing <- static_fuikNr %>% 
+#                              filter(!Datum %in% temp_recomb$Datum)) == 0)
+# 
+# testthat::expect_true(nrow(fuiktype_event_missing <- static_fuikNr %>%
+#                              filter(!fuiktype_event %in% temp_recomb$fuiktype_event)) == 0)
+# 
+# static_fuikNr <- temp_recomb %>% 
+#   select(-fuiktype_event, -n)
+# 
+# dynamic_fuikNr <- afvangsten_per_fuik %>% 
+#   filter(!eventID %in% static_fuikNr$eventID)
+# 
+# afvangsten_per_fuik <- rbind(static_fuikNr,
+#                              dynamic_fuikNr)
+# 
+# false_zeroes <- afvangsten_per_fuik %>% 
+#   filter(fuikNr2 > max_fuikNr,
+#          totaal_fuik > 0)
+# 
+# afvangsten_per_fuik <- afvangsten_per_fuik %>% 
+#   filter(fuikNr2 <= max_fuikNr) %>% 
+#   dplyr::select(- fuikNr2,
+#                 - max_fuikNr) %>% 
+#   ungroup()
+# 
+# # Check data per fuik
+# table(afvangsten_per_fuik$actie, useNA = "ifany")
+# table(afvangsten_per_fuik$fuiktype, useNA = "ifany") #NA's zijn meestal dubbele fuiken maar niet 100%
 
 # set order of colums
 afvangsten_per_fuik <- afvangsten_per_fuik %>% 
