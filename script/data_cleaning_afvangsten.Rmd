@@ -586,8 +586,15 @@ afvangsten_per_fuik_recomb <- rbind(static_fuikNr,
                                     dynamic_fuikNr)
 
 test <- afvangsten_per_fuik %>% 
-  anti_join(afvangsten_per_fuik_recomb) %>% 
-  distinct(eventID, fuiktype, fuikNr, L1, L0, L00, L2, M1, M2, AM, AV, .keep_all = TRUE)
+  anti_join(afvangsten_per_fuik_recomb , by = c("eventID", "fuiktype", "L1", "L0", "L00", "L2", "M1", "M2", "AM", "AV")) %>%
+  distinct(eventID, fuiktype, fuikNr, L1, L0, L00, L2, M1, M2, AM, AV, .keep_all = TRUE) %>% 
+  mutate(Jaar_Tijdstempel = lubridate::year(as.Date(Tijdstempel, format = "%d-%m-%Y %H:%M:%S")),
+         fuikNr2 = as.numeric(gsub(pattern = "Fuik ",
+                                   replacement = "",
+                                   fuikNr))) %>%
+  group_by(eventID, fuiktype) %>%
+  mutate(max_fuikNr = max(fuikNr2, na.rm = TRUE),
+         no_fuiken = max(no_fuiken, na.rm = TRUE))
 
 afvangsten_per_fuik <- rbind(afvangsten_per_fuik_recomb, test)
 
@@ -1143,9 +1150,17 @@ afvangsten_per_fuik <- afvangsten_per_fuik %>%
          Datum = as.character(Datum),
          Jaar = as.integer(Jaar))
 
-afvangsten_per_fuik_combined <- bind_rows(afvangsten_per_fuik, afvangsten_per_fuik_pre2018) %>% 
-   mutate(location_temp = as.integer(substr(eventID, 12, 16))) %>% 
-  tidylog::distinct(eventID, fuikNr, .keep_all = TRUE) # Exclude overlap between Pre2018 and Post2018 data => in case of overlap, keep the Post2018 data. 
+afvangsten_per_fuik_overlap <- bind_rows(afvangsten_per_fuik_pre2018, afvangsten_per_fuik) %>% 
+  filter(Datum <= max(afvangsten_per_fuik_pre2018$Datum, na.rm = TRUE)) %>% 
+  bind_rows(afvangsten_per_fuik_pre2018) %>%
+  mutate(location_temp = as.integer(substr(eventID, 12, 16))) %>% 
+  tidylog::distinct(eventID, fuikNr, .keep_all = TRUE) 
+
+afvangsten_per_fuik_postOnly <- afvangsten_per_fuik %>% 
+  filter(Datum > max(afvangsten_per_fuik_pre2018$Datum, na.rm = TRUE)) %>%
+   mutate(location_temp = as.integer(substr(eventID, 12, 16))) 
+
+afvangsten_per_fuik_combined <- bind_rows(afvangsten_per_fuik_overlap, afvangsten_per_fuik_postOnly)
 
 straalmolen_locations <- afvangsten_per_fuik_combined %>% 
   filter(!is.na(location_temp)) %>% 
