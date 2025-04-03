@@ -178,7 +178,8 @@ missing_timestamp <- data %>%
 #verwijder niet gekoppelde acties & onnodige kolommen
 data_afvangsten <- data %>% 
   mutate(Jaar = case_when(is.na(Jaar) ~ as.character(lubridate::year(as.Date(Datum, format = "%d-%m-%Y"))),
-                          TRUE ~ Jaar)) %>% 
+                          TRUE ~ Jaar),
+         Jaar_Tijdstempel = lubridate::year(as.Date(Tijdstempel, format = "%d-%m-%Y %H:%M:%S"))) %>% 
   tidylog::filter(grepl("Afvangst", `Wat wil je melden`)) %>% 
   select(-contains("Vijver", ignore.case = FALSE), 
          -`E-mailadres`, 
@@ -199,6 +200,14 @@ data_afvangsten <- data %>%
          -Nummer) %>% 
   mutate(`Aantal fuiken (Totaal)` = as.numeric(`Aantal fuiken (Totaal)`)) %>% 
   mutate(eventID = paste(format(as.Date(Datum, format = "%d-%m-%Y"), "%d-%m-%Y"), Locatie, sep = "_"))
+```
+
+```{r}
+toekomstige_afvangsten <- data_afvangsten %>% 
+  tidylog::filter(Jaar_Tijdstempel < Jaar)
+
+data_afvangsten <- data_afvangsten %>% 
+  tidylog::filter(Jaar_Tijdstempel >= Jaar | is.na(Jaar_Tijdstempel))
 ```
 
 ```{r datacleaning: events - long}
@@ -351,8 +360,7 @@ data_afvangsten_rest <- data_afvangsten %>%
   add_tally() 
 
 data_afvangsten_rest_uniek <- data_afvangsten_rest %>% 
-  filter(n == 1,
-         !is.na(Tijdstempel)) 
+  filter(n == 1) 
 ```
 
 ```{r datacleaning: events - combine}
@@ -400,7 +408,7 @@ test <- test0 %>%
   replace_na(replace = list(larvae_wide = 0)) %>%
   replace_na(replace = list(larvae_rest = 0)) %>%
   mutate(diff = larvae_raw - (larvae_long + larvae_wide + larvae_rest)) %>% 
-  write_csv("./interim/test_results.csv")
+  write_csv("./interim/test.csv")
 ```
 
 
