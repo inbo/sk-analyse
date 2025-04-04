@@ -245,7 +245,7 @@ afvangsten_pre2018 <- rawData %>%
 effort <- afvangsten_pre2018 %>%
   select(gbifID, Datum, verbatimLocality, Locatie, fuikNr) %>%
   mutate(fuiknummers = as.integer(str_extract_all(fuikNr, "[0-9]+")),
-         eventID = paste0(Datum, "_", Locatie)) %>% 
+         eventID = paste0(format(as.Date(Datum), "%d-%m-%Y"), "_", Locatie)) %>% 
   group_by(eventID) %>% 
   mutate(no_fuiken_fuiknr = max(fuiknummers, na.rm = TRUE),
          no_fuiken_rows = n()) %>%
@@ -386,7 +386,6 @@ effort_corrected <- rbind(effort_complete,
   rename(no_fuiken = no_fuiken_fuiknr) %>%
   select(-no_fuiken_rows, -Locatie)
 ```
-
 ```{r select columns}
 afvangsten_pre2018_final <- effort_corrected %>% 
   full_join(afvangsten_pre2018 %>% 
@@ -398,7 +397,17 @@ afvangsten_pre2018_final <- effort_corrected %>%
   mutate(larven_corrected = larven_fuik * correctie_factor,
          totaal_corrected = totaal_fuik * correctie_factor,
          juveniel_corrected = juveniel_fuik * correctie_factor,
-         adult_corrected = adult_fuik * correctie_factor)
+         adult_corrected = adult_fuik * correctie_factor) %>% 
+  ungroup()
+```
+
+```{r}
+afvangsten_pre2018_final <- afvangsten_pre2018_final %>% 
+  mutate(Jaar = case_when(!is.na(Jaar) ~ Jaar,
+                          is.na(Jaar) ~ year(as.Date(Datum))))
+
+noJaar <- afvangsten_pre2018_final %>% 
+  filter(is.na(Jaar))
 ```
 
 ```{r final checks}
