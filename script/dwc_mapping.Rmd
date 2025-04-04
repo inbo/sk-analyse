@@ -170,6 +170,7 @@ occurrence %<>% mutate(dwc_occurrenceStatus = case_when(
   dwc_individualCount == 0 ~ "absent"
 ))
 ```
+
 ```{r}
 occurrence %<>% mutate(dwc_occurrenceRemarks = 'target species')
 ```
@@ -325,7 +326,7 @@ occurrence %<>% mutate(dwc_geodeticDatum = "WGS84")
 ### coordinateUncertaintyInMeters
 
 ```{r}
-occurrence %<>% mutate(dwc_coordinateUncertaintyInMeters = "30")
+occurrence %<>% mutate(dwc_coordinateUncertaintyInMeters = sqrt(2*500^2))
 ```
 ### Identification
 
