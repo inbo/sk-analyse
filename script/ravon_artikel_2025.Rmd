@@ -24,7 +24,7 @@ afvangsten_per_jaar_cum <- afvangsten_per_fuik_combined %>%
   ungroup() %>% 
   mutate(cum_vangst = cumsum(totaal_vangst)) 
  
-  writexl::write_xlsx(afvangsten_per_jaar_cum, path = "./interim/RAVON_afvangsten_per_jaar_cum.xlsx")
+  writexl::write_xlsx(afvangsten_per_jaar_cum, path = "./interim/figuren_ravon_artikel/2025/RAVON_afvangsten_per_fuik_combined.xlsx")
 
 afvangsten_per_jaar_cum %>% 
   ggplot(aes(x = Jaar, y = totaal_vangst)) +
@@ -57,7 +57,7 @@ afvangsten_per_jaar_cum %>%
   guides(fill = guide_legend(order = 1), # Volgorde van de legenda items
          color = guide_legend(order = 2)) # Volgorde van de legenda items
 
-  ggsave("./interim/figuren_ravon_artikel/2025/afvangsten_per_fuik_combined.png", width = 10, height = 6, units = "in")
+  ggsave("./interim/figuren_ravon_artikel/2025/RAVON_afvangsten_per_fuik_combined.png", width = 10, height = 6, units = "in")
 ```
 
 Point graph of the total number of bullfrogs caught per year divided by the effort per year per pond
@@ -97,7 +97,7 @@ temp <- temp %>%
                              Locatie == "driehoek" ~ "driehoek*",
                              TRUE ~ Locatie))
 
-writexl::write_xlsx(temp, path = "./interim/RAVON_trend_cpue_vijvers.xlsx")
+writexl::write_xlsx(temp, path = "./interim/figuren_ravon_artikel/2025/RAVON_Trend_VPEI_jaar_vijver.xlsx")
 
 temp %>% 
   ggplot(aes(x = jaar, y = cpue)) +
