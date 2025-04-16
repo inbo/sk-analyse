@@ -114,7 +114,7 @@ temp %>%
   theme_minimal() # Voor een schonere look
 
 
-  ggsave("./interim/figuren_ravon_artikel/2025/Trend_VPEI_jaar_vijver.png", width = 10, height = 6, units = "in")
+  ggsave("./interim/figuren_ravon_artikel/2025/RAVON_Trend_VPEI_jaar_vijver.png", width = 10, height = 6, units = "in")
 
 summary(temp$jaren)
 
