@@ -17,16 +17,16 @@ Staaf grafiek totaal vangsten per jaar
 met cumulatieve lijn (op andere as)
 en aantal vijvers per jaar als label boven de bar
 ```{r}
-afvangsten_per_fuik_combined <- afvangsten_per_fuik_combined %>%
+afvangsten_per_jaar_cum <- afvangsten_per_fuik_combined %>%
   group_by(Jaar) %>%
   summarise(totaal_vangst = sum(totaal_fuik, na.rm = TRUE),
             aantal_vijvers = n_distinct(locationID)) %>%
   ungroup() %>% 
   mutate(cum_vangst = cumsum(totaal_vangst)) 
  
-  writexl::write_xlsx(afvangsten_per_fuik_combined, path = "./interim/RAVON_afvangsten_per_fuik_combined.")
+  writexl::write_xlsx(afvangsten_per_jaar_cum, path = "./interim/RAVON_afvangsten_per_jaar_cum.xlsx")
 
-afvangsten_per_fuik_combined %>% 
+afvangsten_per_jaar_cum %>% 
   ggplot(aes(x = Jaar, y = totaal_vangst)) +
   geom_bar(aes(fill = "Totale vangst"), 
            stat = "identity") +
