@@ -1,0 +1,130 @@
+---
+title: "Ravon artikel 2025"
+author: "Sander Devisscher, Teun Everts, Rein Brys"
+date: "2025-03-12"
+output: html_document
+---
+
+```{r}
+library(tidyverse)
+```
+
+```{r read data}
+afvangsten_per_fuik_combined <- read_csv("interim/afvangsten_per_fuik_combined.csv")
+```
+
+Staaf grafiek totaal vangsten per jaar
+met cumulatieve lijn (op andere as)
+en aantal vijvers per jaar als label boven de bar
+```{r}
+afvangsten_per_jaar_cum <- afvangsten_per_fuik_combined %>%
+  group_by(Jaar) %>%
+  summarise(totaal_vangst = sum(totaal_fuik, na.rm = TRUE),
+            aantal_vijvers = n_distinct(locationID)) %>%
+  ungroup() %>% 
+  mutate(cum_vangst = cumsum(totaal_vangst)) 
+ 
+  writexl::write_xlsx(afvangsten_per_jaar_cum, path = "./interim/figuren_ravon_artikel/2025/RAVON_afvangsten_per_fuik_combined.xlsx")
+
+afvangsten_per_jaar_cum %>% 
+  ggplot(aes(x = Jaar, y = totaal_vangst)) +
+  geom_bar(aes(fill = "Totale vangst"), 
+           stat = "identity") +
+  geom_line(aes(y = cum_vangst/4, color = "Cumulatieve vangst"),
+            linewidth = 1) +
+  geom_text(aes(y = totaal_vangst, label = aantal_vijvers), vjust = -0.5)  +
+  scale_y_continuous(
+    name = "Totale vangst",
+    labels = function(x) paste0(x/1000, "k"),
+    sec.axis = sec_axis(~.*4, 
+                        name = "Cumulatieve vangst", 
+                        labels = function(x) paste0(x/1000, "k"),
+                        breaks = seq(0, 500000, by = 100000))
+  ) +
+  scale_x_continuous(
+    limits = c(2009.5, 2024.5),
+    breaks = seq(2010, 2024, by = 2)
+  ) +
+  scale_fill_manual(values = c("Totale vangst" = "darkgrey"), 
+                    name = "Legenda") + # Naam van de legenda instellen
+  scale_color_manual(values = c("Cumulatieve vangst" = "red"),
+                     name = "") + # Naam van de legenda instellen
+  theme_minimal() +
+  theme(legend.position = "bottom", # Legenda onder de grafiek
+        legend.title = element_text(hjust = 0.5)) + # Centraal uitlijnen van de legendatitel
+  labs(title = "Totale en cumulatieve stierkikker vangst per jaar",
+       subtitle = "Aantal beheerde vijvers weergegeven boven elke bar") +
+  guides(fill = guide_legend(order = 1), # Volgorde van de legenda items
+         color = guide_legend(order = 2)) # Volgorde van de legenda items
+
+  ggsave("./interim/figuren_ravon_artikel/2025/RAVON_afvangsten_per_fuik_combined.png", width = 10, height = 6, units = "in")
+```
+
+Point graph of the total number of bullfrogs caught per year divided by the effort per year per pond
+When this pond has at least 3 consecutive years of data.
+The first year should be recalculated to 0. Consecutive years should increase by a step of 1.
+A trendline per pond should be added to the graph.
+```{r}
+locs <- afvangsten_per_fuik_combined %>% 
+  distinct(locationID, Locatie) %>% 
+  filter(!is.na(Locatie))
+
+temp <- afvangsten_per_fuik_combined %>%
+  filter(!is.na(locationID)) %>%
+  group_by(locationID) %>% 
+  mutate(jaren = n_distinct(Jaar)) %>% 
+  filter(jaren >= 5) %>%
+  mutate(jaar = Jaar - min(Jaar)) %>% 
+  group_by(locationID, jaar) %>%
+  summarise(totale_vangst = sum(totaal_fuik, na.rm = TRUE),
+            totale_inspanning = n(),
+            cpue = totale_vangst/totale_inspanning,
+            mean_vangst = mean(totaal_fuik, na.rm = TRUE),
+            se_vangst = sd(totaal_fuik, na.rm = TRUE) / sqrt(totale_inspanning)) %>%
+  ungroup() %>% 
+  left_join(locs, by = "locationID") %>% 
+  filter(!grepl("nijlen", Locatie, ignore.case = TRUE)) 
+
+# Filter ponds that have a cpue of at least 5 in jaar 0
+broedpoelen <- temp %>% 
+  filter(jaar == 0 & cpue >= 5)
+
+temp <- temp %>% 
+  filter(locationID %in% broedpoelen$locationID)
+
+temp <- temp %>%
+  mutate(Locatie = case_when(Locatie == "bospoel" ~ "bospoel*",
+                             Locatie == "driehoek" ~ "driehoek*",
+                             TRUE ~ Locatie))
+
+writexl::write_xlsx(temp, path = "./interim/figuren_ravon_artikel/2025/RAVON_Trend_VPEI_jaar_vijver.xlsx")
+
+temp %>% 
+  ggplot(aes(x = jaar, y = cpue)) +
+  geom_point(aes(fill = cpue == 0), shape = 21, size = 2, stroke = 0.5) + # Gebruik shape 21 voor gevulde cirkels met rand
+  scale_fill_manual(values = c("TRUE" = "white", "FALSE" = "black"), guide = FALSE) +
+  geom_smooth(method = "lm", se = FALSE, color = "red") +
+  facet_wrap(~Locatie, scales = "free") +
+  scale_x_continuous(breaks = function(x) seq(ceiling(min(x)), floor(max(x)), by = 1)) + # Alleen hele getallen op x-as
+  labs(
+    title = "Trend in de vangst per eenheid van inspanning per jaar per vijver",
+    x = "Jaar",
+    y = "Totale vangst per fuik per dag"
+  ) +
+  theme_minimal() # Voor een schonere look
+
+
+  ggsave("./interim/figuren_ravon_artikel/2025/RAVON_Trend_VPEI_jaar_vijver.png", width = 10, height = 6, units = "in")
+
+summary(temp$jaren)
+
+richtingscoefficienten <- temp %>%
+  group_by(Locatie) %>%
+  summarise(
+    richtingscoefficient = coef(lm(cpue ~ jaar))[2] # Helling berekenen
+  ) %>%
+  ungroup() 
+
+mean(richtingscoefficienten$richtingscoefficient, na.rm = TRUE)
+sd(richtingscoefficienten$richtingscoefficient, na.rm = TRUE)/sqrt(nrow(richtingscoefficienten))
+```

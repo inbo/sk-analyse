@@ -30,3 +30,4 @@ vignettes/*.pdf
 
 # data publication ignored files
 ~/Github/sk-analyse/darwincore/processed/*.csv
+*.Rproj
