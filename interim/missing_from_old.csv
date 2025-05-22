@@ -1,1 +1,1 @@
-occurrenceID,Tijdstempel,Datum,Locatie,actie,fuiklengte,lat,long,Type,locationID,eventID,no_fuiken,fuikNr,Opmerkingen,Hoek,fuiktype,lifestage,individualCount,scientificname,taxonkey,recordedBy,identifiedBy,n
+rowid,Tijdstempel,Datum,Jaar,Locatie,actie,fuiklengte,Net verhoogd?,lat,long,Type,locationID,eventID,no_fuiken,fuikNr,Opmerkingen,Hoek,fuiktype,lifestage,individualCount,scientificname,taxonkey,recordedBy,identifiedBy,occurrenceID
