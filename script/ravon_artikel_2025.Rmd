@@ -35,10 +35,10 @@ afvangsten_per_jaar_cum %>%
   geom_text(aes(y = totaal_vangst, label = aantal_vijvers), vjust = -0.5)  +
   scale_y_continuous(
     name = "Totale vangst",
-    labels = function(x) paste0(x/1000, "k"),
+    labels = function(x) as.integer(x),
     sec.axis = sec_axis(~.*4, 
                         name = "Cumulatieve vangst", 
-                        labels = function(x) paste0(x/1000, "k"),
+                        labels = function(x) as.integer(x),
                         breaks = seq(0, 500000, by = 100000))
   ) +
   scale_x_continuous(
