@@ -658,9 +658,13 @@ afvangsten_vr_gbif <- afvangsten_per_fuik %>%
   rename(lat = lat_grid,
          long = long_grid) %>%
   select(-larven_fuik,
+         -adult_fuik,
+         -juveniel_fuik,
          -totaal_fuik,
          -correctie_factor,
          -larven_corrected,
+         -adult_corrected,
+         -juveniel_corrected,
          -totaal_fuik_corrected,
          -`Invuller 2`,
          -lat_vijver,
@@ -781,10 +785,15 @@ unis <- afvangsten_vr_gbif %>%
   add_tally() %>%
   filter(n == 1)
 
-afvangsten_vr_gbif <- afvangsten_vr_gbif %>% 
-  tidylog::mutate(occurrenceID = case_when(is.na(occurrenceID) ~ UUIDgenerate(),
-                                           TRUE ~ occurrenceID)) %>% 
-  ungroup() %>% 
+afvangsten_vr_gbif_new <- afvangsten_vr_gbif %>% 
+  filter(is.na(occurrenceID)) 
+
+afvangsten_vr_gbif_new$occurrenceID <- UUIDgenerate(n = nrow(afvangsten_vr_gbif_new))
+
+afvangsten_vr_gbif_old <- afvangsten_vr_gbif %>% 
+  filter(!is.na(occurrenceID))
+
+afvangsten_vr_gbif <- rbind(afvangsten_vr_gbif_old, afvangsten_vr_gbif_new) %>% 
   dplyr::select(occurrenceID,Tijdstempel,Datum,Jaar,Locatie,actie,fuiklengte,`Net verhoogd?`,lat,long,Type,locationID,eventID,no_fuiken,fuikNr,Opmerkingen,Hoek,fuiktype,lifestage,individualCount,scientificname,taxonkey,recordedBy,identifiedBy)
 
 
