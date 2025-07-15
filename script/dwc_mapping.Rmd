@@ -344,7 +344,9 @@ occurrence %<>% mutate(dwc_identifiedBy = identified_by)
 #occurrence %<>% mutate(dwc_dateIdentified = identified_date)
 ```
 
-
+```{r}
+#occurrence %<>% mutate(dwc_identificationVerificationStatus = "validated")
+```
 
 
 ### scientificName
