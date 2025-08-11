@@ -312,7 +312,7 @@ occurrence %<>% mutate(dwc_identifiedBy = identified_by)
 ```
 
 ```{r}
-#occurrence %<>% mutate(dwc_identificationVerificationStatus = "validated")
+occurrence %<>% mutate(dwc_identificationVerificationStatus = "validated")
 ```
 
 
