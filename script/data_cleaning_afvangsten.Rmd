@@ -743,18 +743,24 @@ dups <- dups %>%
   select(-n) 
 
 
-# If a record is not a real duplicate, keep all the records & add a new occurrenceID
+# Sometimes the same occurrenceID is used for several occurrences 
+# Detect the other rows than the first
 remaining_dups_catch <- dups %>% 
   group_by(occurrenceID) %>% 
   add_tally() %>% 
-  filter(n > 1) %>% 
+  slice(2:n()) %>% 
   ungroup()
 
 
-# Extract the records that were real duplicates => these are the records that are not in remaining_dups_catch
+# Maintain the first row of each OccurrenceID group
+# Maintain only the first
 dups_catch_fixed <- dups %>% 
-  filter(!occurrenceID %in% remaining_dups_catch$occurrenceID) %>% 
-  ungroup()
+  filter(!rowid %in% remaining_dups_catch$rowid) %>% 
+  add_tally() %>% 
+  ungroup() %>% 
+  select(-occurrenceID_old)
+
+testthat::expect_true(n_distinct(dups_catch_fixed$occurrenceID) == nrow(dups_catch_fixed))
 
 # Add new occurrenceID to the remaining duplicates
 remaining_dups_catch <- remaining_dups_catch %>% 
@@ -762,6 +768,13 @@ remaining_dups_catch <- remaining_dups_catch %>%
   mutate(occurrenceID = UUIDgenerate(n = n_distinct(rowid))) %>% 
   select(-occurrenceID_old) %>%
   ungroup()
+
+testthat::expect_true(n_distinct(remaining_dups_catch$occurrenceID) == nrow(remaining_dups_catch))
+
+testthat::expect_true(nrow(dups) == nrow(dups_catch_fixed) + nrow(remaining_dups_catch))
+
+fistools::colcompare(afvangsten_vr_gbif, dups_catch_fixed)
+fistools::colcompare(afvangsten_vr_gbif, remaining_dups_catch)
 
 # Combine the fixed duplicates with the remaining duplicates & the unique records
 afvangsten_vr_gbif <- rbind(afvangsten_vr_gbif, dups_catch_fixed, remaining_dups_catch) %>%
