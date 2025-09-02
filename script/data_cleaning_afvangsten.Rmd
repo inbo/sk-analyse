@@ -1119,11 +1119,13 @@ data_bijvangsten <- data_bijvangsten %>%
 
 data_bijvangsten <- bind_rows(data_bijvangsten, dup_bycatch_redux)
 
-remaining_dup_bycatch <- data_bijvangsten %>% 
+remaining_dup_bycatch <- dup_bycatch_redux %>% 
   group_by(occurrenceID) %>%
   add_tally() %>%
   filter(n > 1) %>% 
   ungroup()
+
+testthat::expect_true(nrow(remaining_dup_bycatch) == 0)
 
 testthat::expect_true(n_distinct(data_bijvangsten$occurrenceID) == nrow(data_bijvangsten))
 testthat::expect_true(n_distinct(data_bijvangsten$eventID) == nrow(events3))
