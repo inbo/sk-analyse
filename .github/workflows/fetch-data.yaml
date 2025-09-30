@@ -52,15 +52,14 @@ jobs:
           sudo apt-get install libgdal-dev libproj-dev
           sudo apt install libudunits2-dev
           sudo apt-get update && sudo apt-get install -y libmagick++-dev
+          sudo apt-get install -y libprotobuf-dev protobuf-compiler libharfbuzz-dev libfribidi-dev libfreetype6-dev libpng-dev libglib2.0-dev
 
       - name: Install R packages
         run: |
           source("script/install_packages.R")
-          install.packages(c('magick', 'protolite', 'remotes'), repos = 'https://cloud.r-project.org')
+           Rscript -e "install.packages(c('protolite', 'textshaping', 'svglite', 'ragg', 'leafpop', 'mapview', 'pkgdown', 'devtools'), repos = 'https://cloud.r-project.org')"
+           Rscript -e "remotes::install_github('inbo/fistools')"
         shell: Rscript {0}
-
-      - name: Install fistools
-        run: R -e "remotes::install_github('inbo/fistools')"
         
       - name: Fetch data
         run: |
