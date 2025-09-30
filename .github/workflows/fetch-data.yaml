@@ -56,6 +56,9 @@ jobs:
         run: |
           source("script/install_packages.R")
         shell: Rscript {0}
+
+      - name: Install fistools
+        run: R -e "remotes::install_github('inbo/fistools')"
         
       - name: Fetch data
         run: |
