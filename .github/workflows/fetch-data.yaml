@@ -56,7 +56,7 @@ jobs:
 
       - name: Install R dependencies
         run: |
-         Rscript -e "install.packages(c('protolite', 'textshaping', 'svglite', 'ragg', 'leafpop', 'mapview', 'pkgdown', 'devtools'), repos = 'https://cloud.r-project.org')"
+         Rscript -e "install.packages(c('protolite', 'textshaping', 'svglite', 'ragg', 'leafpop', 'mapview', 'pkgdown', 'devtools', 'lubridate'), repos = 'https://cloud.r-project.org')"
          Rscript -e "remotes::install_github('inbo/fistools')"
 
       - name: Install R packages
