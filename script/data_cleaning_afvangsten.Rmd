@@ -653,7 +653,7 @@ afvangsten_vr_gbif_old <- read_csv("./output/gbif_stierkikker_vangsten.csv") %>%
   dplyr::select(-Jaar,
                 -`Net verhoogd?`)
 
-afvangsten_vr_gbif <- afvangsten_per_fuik %>%
+afvangsten_vr_gbif_int <- afvangsten_per_fuik %>%
   filter(Jaar > 2018) %>% 
   rename(lat = lat_grid,
          long = long_grid) %>%
@@ -717,19 +717,20 @@ afvangsten_vr_gbif <- afvangsten_per_fuik %>%
                 -fuikNr.y,
                 -n)
 
-afvangsten_vr_gbif <- afvangsten_vr_gbif %>% 
+afvangsten_vr_gbif_int <- afvangsten_vr_gbif_int %>% 
   group_by(rowid) %>% 
   add_tally() %>% 
   ungroup() 
 
-names <- names(afvangsten_vr_gbif)
+names <- names(afvangsten_vr_gbif_int)
 names <- names[!names %in% c("OccurrenceID")]
 
-dups <- afvangsten_vr_gbif %>%
+dups <- afvangsten_vr_gbif_int %>%
   filter(n > 1) %>%
   ungroup()
 
-afvangsten_vr_gbif <- afvangsten_vr_gbif %>%
+# Select unique occurrenceID's
+unis <- afvangsten_vr_gbif_int %>%
   filter(!occurrenceID %in% dups$occurrenceID)
 
 # Duplicate occurrenceID's
@@ -773,11 +774,11 @@ testthat::expect_true(n_distinct(remaining_dups_catch$occurrenceID) == nrow(rema
 
 testthat::expect_true(nrow(dups) == nrow(dups_catch_fixed) + nrow(remaining_dups_catch))
 
-fistools::colcompare(afvangsten_vr_gbif, dups_catch_fixed)
-fistools::colcompare(afvangsten_vr_gbif, remaining_dups_catch)
+fistools::colcompare(unis, dups_catch_fixed)
+fistools::colcompare(unis, remaining_dups_catch)
 
 # Combine the fixed duplicates with the remaining duplicates & the unique records
-afvangsten_vr_gbif <- rbind(afvangsten_vr_gbif, dups_catch_fixed, remaining_dups_catch) %>%
+afvangsten_vr_gbif <- rbind(unis, dups_catch_fixed, remaining_dups_catch) %>%
   arrange(Tijdstempel) %>% 
   select(-n)
 # ids <- unique(dups$eventID)
@@ -793,7 +794,7 @@ afvangsten_vr_gbif <- rbind(afvangsten_vr_gbif, dups_catch_fixed, remaining_dups
 #            fuiktype, scientificname, taxonkey, recordedBy, identifiedBy, occurrenceID) %>% 
 #   summarise(individualCount = min(individualCount, na.rm = TRUE))
 
-unis <- afvangsten_vr_gbif %>% 
+unis_post_dups <- afvangsten_vr_gbif %>% 
   group_by(occurrenceID) %>%
   add_tally() %>%
   filter(n == 1)
@@ -868,6 +869,7 @@ missing_from_old <- afvangsten_vr_gbif_old %>%
 
 missing_from_new <- afvangsten_vr_gbif %>%
   filter(!occurrenceID %in% afvangsten_vr_gbif_old$occurrenceID) %>% 
+  filter(!occurrenceID %in% afvangsten_vr_gbif_new$occurrenceID) %>% 
   write_csv("./interim/missing_from_new.csv")
 
 in_both <- afvangsten_vr_gbif %>% 
@@ -881,7 +883,7 @@ data_bijvangsten_old <- read_csv("./output/gbif_stierkikker_bijvangsten.csv") %>
                 -`Net verhoogd?`,
                 -taxonkey)
 
-data_bijvangsten <- data %>% 
+data_bijvangsten_int <- data %>% 
   filter(!is.na(locationID),
          grepl("Afvangst", `Wat wil je melden`),
          Jaar > 2018) %>% 
@@ -1008,10 +1010,11 @@ data_bijvangsten <- data %>%
                 -Hoek.y,
                 -Opmerkingen.y,
                 -no_fuiken.y,
-                -fuikNr.y)
+                -fuikNr.y,
+                -contains("Foto"))
 
 
-species <- unique(data_bijvangsten$scientificname)
+species <- unique(data_bijvangsten_int$scientificname)
 
 temp_taxonkey <- data.frame() %>% 
   mutate(species = NA_character_,
@@ -1037,7 +1040,7 @@ for(s in species){
   
 }
 
-data_bijvangsten <- data_bijvangsten %>% 
+data_bijvangsten_int <- data_bijvangsten_int %>% 
   left_join(temp_taxonkey,
             by = c("scientificname" = "species")) %>% 
   group_by(rowid) %>% 
@@ -1069,18 +1072,18 @@ data_bijvangsten <- data_bijvangsten %>%
                 identifiedBy)
 
 x <- names(afvangsten_vr_gbif)
-y <- names(data_bijvangsten)
+y <- names(data_bijvangsten_int)
 
 x_not_y <- setdiff(x, y)
 y_not_x <- setdiff(y, x)
 
 #max(str_count(data_bijvangsten$species, ";"), na.rm = TRUE)
 
-table(data_bijvangsten$recordedBy,
-      data_bijvangsten$identifiedBy,
+table(data_bijvangsten_int$recordedBy,
+      data_bijvangsten_int$identifiedBy,
       useNA = "ifany")
 
-events3 <- data_bijvangsten %>% 
+events3 <- data_bijvangsten_int %>% 
   ungroup() %>% 
   distinct(Datum,
            Jaar,
@@ -1091,7 +1094,7 @@ events3 <- data_bijvangsten %>%
            locationID,
            eventID) 
 
-dup_bycatch <- data_bijvangsten %>% 
+dup_bycatch <- data_bijvangsten_int %>% 
   group_by(occurrenceID) %>%
   add_tally() %>%
   filter(n > 1) %>% 
@@ -1114,10 +1117,10 @@ dup_bycatch_redux <- dup_bycatch_redux %>%
 # Create a list of occurrenceIDs in dup_bycatch_redux$occurrenceID_old
 occurence_ids <- unique(unlist(dup_bycatch$occurrenceID))
 
-data_bijvangsten <- data_bijvangsten %>%
+unis_bycatch <- data_bijvangsten_int %>%
   filter(!occurrenceID %in% occurence_ids) 
 
-data_bijvangsten <- bind_rows(data_bijvangsten, dup_bycatch_redux)
+data_bijvangsten <- bind_rows(unis_bycatch, dup_bycatch_redux)
 
 remaining_dup_bycatch <- dup_bycatch_redux %>% 
   group_by(occurrenceID) %>%
