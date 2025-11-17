@@ -696,6 +696,7 @@ afvangsten_vr_gbif_int <- afvangsten_per_fuik %>%
                                                     "locationID" = "locationID",
                                                     "eventID" = "eventID",
                                                     "fuiktype" = "fuiktype",
+                                                    "fuikNr" = "fuikNr",
                                                     "scientificname" = "scientificname",
                                                     "lifestage" = "lifestage",
                                                     "recordedBy" = "recordedBy",
@@ -706,15 +707,13 @@ afvangsten_vr_gbif_int <- afvangsten_per_fuik %>%
          individualCount = individualCount.x,
          Hoek = Hoek.x,
          Opmerkingen = Opmerkingen.x,
-         no_fuiken = no_fuiken.x,
-         fuikNr = fuikNr.x) %>%
+         no_fuiken = no_fuiken.x) %>%
   dplyr::select(-lat.y,
                 -long.y,
                 -individualCount.y,
                 -Hoek.y,
                 -Opmerkingen.y,
                 -no_fuiken.y,
-                -fuikNr.y,
                 -n)
 
 afvangsten_vr_gbif_int <- afvangsten_vr_gbif_int %>% 
@@ -993,6 +992,7 @@ data_bijvangsten_int <- data %>%
                                                   "locationID" = "locationID",
                                                   "eventID" = "eventID",
                                                   "fuiktype" = "fuiktype",
+                                                  "fuikNr" = "fuikNr",
                                                   "scientificname" = "scientificname",
                                                   "lifestage" = "lifestage",
                                                   "recordedBy" = "recordedBy",
@@ -1002,15 +1002,13 @@ data_bijvangsten_int <- data %>%
          individualCount = individualCount.x,
          Hoek = Hoek.x,
          Opmerkingen = Opmerkingen.x,
-         no_fuiken = no_fuiken.x,
-         fuikNr = fuikNr.x) %>%
+         no_fuiken = no_fuiken.x) %>%
   dplyr::select(-lat.y,
                 -long.y,
                 -individualCount.y,
                 -Hoek.y,
                 -Opmerkingen.y,
                 -no_fuiken.y,
-                -fuikNr.y,
                 -contains("Foto"))
 
 
