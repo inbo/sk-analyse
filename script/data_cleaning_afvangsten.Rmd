@@ -807,10 +807,10 @@ afvangsten_vr_gbif_old <- afvangsten_vr_gbif %>%
 
 # conform classes 
 afvangsten_vr_gbif_old <- afvangsten_vr_gbif_old %>% 
-  mutate(taxonkey = as.character(taxonkey))
+  tidylog::mutate(taxonkey = as.character(taxonkey))
 
 afvangsten_vr_gbif_new <- afvangsten_vr_gbif_new %>% 
-  mutate(taxonkey = as.character(taxonkey))
+  tidylog::mutate(taxonkey = as.character(taxonkey))
 
 # Combine datasets
 afvangsten_vr_gbif <- rbind(afvangsten_vr_gbif_old, afvangsten_vr_gbif_new) %>% 
