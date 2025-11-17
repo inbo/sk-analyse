@@ -713,8 +713,7 @@ afvangsten_vr_gbif_int <- afvangsten_per_fuik %>%
                 -individualCount.y,
                 -Hoek.y,
                 -Opmerkingen.y,
-                -no_fuiken.y,
-                -n)
+                -no_fuiken.y)
 
 afvangsten_vr_gbif_int <- afvangsten_vr_gbif_int %>% 
   group_by(rowid) %>% 
