@@ -1023,7 +1023,7 @@ species <- unique(data_bijvangsten_int$scientificname)
 
 temp_taxonkey <- data.frame() %>% 
   mutate(species = NA_character_,
-         taxonkey = NA_integer_)
+         taxonkey = NA_character_)
 
 for(s in species){
   s2 <- gsub(pattern = "Distycus spec.",
@@ -1036,11 +1036,11 @@ for(s in species){
   if("speciesKey" %in% names(temp_lookup)){
     temp_taxonkey <- temp_taxonkey %>% 
       add_row(species = s,
-              taxonkey = temp_lookup$speciesKey)
+              taxonkey = as.character(temp_lookup$speciesKey))
   }else{
     temp_taxonkey <- temp_taxonkey %>% 
       add_row(species = s,
-              taxonkey = temp_lookup$genusKey)
+              taxonkey = as.character(temp_lookup$genusKey))
   }
   
 }
