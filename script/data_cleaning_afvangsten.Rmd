@@ -805,6 +805,14 @@ afvangsten_vr_gbif_new$occurrenceID <- UUIDgenerate(n = nrow(afvangsten_vr_gbif_
 afvangsten_vr_gbif_old <- afvangsten_vr_gbif %>% 
   filter(!is.na(occurrenceID))
 
+# conform classes 
+afvangsten_vr_gbif_old <- afvangsten_vr_gbif_old %>% 
+  mutate(taxonkey = as.character(taxonkey))
+
+afvangsten_vr_gbif_new <- afvangsten_vr_gbif_new %>% 
+  mutate(taxonkey = as.character(taxonkey))
+
+# Combine datasets
 afvangsten_vr_gbif <- rbind(afvangsten_vr_gbif_old, afvangsten_vr_gbif_new) %>% 
   dplyr::select(occurrenceID,Tijdstempel,Datum,Jaar,Locatie,actie,fuiklengte,`Net verhoogd?`,lat,long,Type,locationID,eventID,no_fuiken,fuikNr,Opmerkingen,Hoek,fuiktype,lifestage,individualCount,scientificname,taxonkey,recordedBy,identifiedBy)
 
