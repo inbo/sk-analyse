@@ -301,9 +301,40 @@ data_afvangsten_wide <- data_afvangsten %>%
   ungroup()
 
 # Alle data van het event staat op 1 rij
+# Split catch over fuiken evenly & set fuik characteristics to NA
 data_afvangsten_wide_single <- data_afvangsten_wide %>%
   filter(n == 1) %>% 
   select(-n)
+
+lifestages <- c("L00", "L0", "L1", "L2", "M1", "M2", "AM", "AV")
+
+data_afvangsten_wide_single_recomb <- data.frame()
+
+for(i in 1:nrow(data_afvangsten_wide_single)){
+  temp_afvangsten_wide_single <- data_afvangsten_wide_single[i,]
+  
+  # split catch evenly
+  for(ls in lifestages){
+    ls_split <- floor(as.integer(temp_afvangsten_wide_single[[paste0("Fuik 1 - ", ls)]])/temp_afvangsten_wide_single$`Aantal fuiken (Totaal)`) 
+    
+    ls_diff <- as.integer(temp_afvangsten_wide_single[[paste0("Fuik 1 - ", ls)]]) - ls_split*temp_afvangsten_wide_single$`Aantal fuiken (Totaal)` 
+    
+    for(n in 1:temp_afvangsten_wide_single$`Aantal fuiken (Totaal)`){
+      if(n == 1){
+        temp_afvangsten_wide_single[[paste0("Fuik ", n, " - ", ls)]] <- ls_split + ls_diff 
+      }else{
+        temp_afvangsten_wide_single[[paste0("Fuik ", n, " - ", ls)]] <- ls_split
+      }
+      temp_afvangsten_wide_single[[paste0("Fuik ", n, " - Hoek")]] <- NA_character_
+    }
+  }
+  if(nrow(data_afvangsten_wide_single_recomb) == 0){
+    data_afvangsten_wide_single_recomb <- temp_afvangsten_wide_single
+  }else{
+    data_afvangsten_wide_single_recomb <- rbind(data_afvangsten_wide_single_recomb, 
+                                                temp_afvangsten_wide_single)
+  }
+}
 
 # Data van het event staat verspreid over meerdere rijen
 # add column to flag whether or not `Aantal fuiken (Totaal)` > 12
@@ -345,7 +376,7 @@ data_afvangsten_wide_multiple_recomb <- rbind(data_afvangsten_wide_multiple_1,
                                               data_afvangsten_wide_multiple_2)
 
 # combineer data
-data_afvangsten_wide <- bind_rows(data_afvangsten_wide_single,
+data_afvangsten_wide <- bind_rows(data_afvangsten_wide_single_recomb,
                                   data_afvangsten_wide_multiple_recomb)
 
 table(data_afvangsten_wide$eventID, useNA = "ifany")
@@ -1190,7 +1221,7 @@ afvangsten_per_fuik_overlap <- bind_rows(afvangsten_per_fuik_pre2018, afvangsten
 
 afvangsten_per_fuik_postOnly <- afvangsten_per_fuik %>% 
   filter(Datum > max(afvangsten_per_fuik_pre2018$Datum, na.rm = TRUE)) %>%
-   mutate(location_temp = as.integer(substr(eventID, 12, 16))) 
+  mutate(location_temp = as.integer(substr(eventID, 12, 16))) 
 
 afvangsten_per_fuik_combined <- bind_rows(afvangsten_per_fuik_overlap, afvangsten_per_fuik_postOnly)
 
@@ -1198,7 +1229,7 @@ straalmolen_locations <- afvangsten_per_fuik_combined %>%
   filter(!is.na(location_temp)) %>% 
   distinct(location_temp) %>%
   pull()
- 
+
 afvangsten_per_fuik_straalmolen <- afvangsten_per_fuik_combined %>% 
   filter(location_temp %in% straalmolen_locations) %>% 
   select(-location_temp) %>% 
