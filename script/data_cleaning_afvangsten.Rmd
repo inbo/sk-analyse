@@ -319,13 +319,25 @@ for(i in 1:nrow(data_afvangsten_wide_single)){
     
     ls_diff <- as.integer(temp_afvangsten_wide_single[[paste0("Fuik 1 - ", ls)]]) - ls_split*temp_afvangsten_wide_single$`Aantal fuiken (Totaal)` 
     
-    for(n in 1:temp_afvangsten_wide_single$`Aantal fuiken (Totaal)`){
-      if(n == 1){
-        temp_afvangsten_wide_single[[paste0("Fuik ", n, " - ", ls)]] <- ls_split + ls_diff 
-      }else{
-        temp_afvangsten_wide_single[[paste0("Fuik ", n, " - ", ls)]] <- ls_split
+    ls_value <- ifelse(!is.na(as.integer(temp_afvangsten_wide_single[[paste0("Fuik 1 - ", ls)]])), as.integer(temp_afvangsten_wide_single[[paste0("Fuik 1 - ", ls)]]), 0)
+    ls_sum <- temp_afvangsten_wide_single %>% 
+      mutate(across(matches(ls), as.numeric)) %>% 
+      mutate(ls_sum = sum(across(matches(ls)), na.rm = TRUE)) %>% 
+      pull(ls_sum)
+    
+    if(ls_value == ls_sum){
+      for(n in 1:temp_afvangsten_wide_single$`Aantal fuiken (Totaal)`){
+        
+        if(n == 1){
+          temp_afvangsten_wide_single[[paste0("Fuik ", n, " - ", ls)]] <- as.character(ls_split + ls_diff) 
+        }else{
+          temp_afvangsten_wide_single[[paste0("Fuik ", n, " - ", ls)]] <- as.character(ls_split)
+          temp_afvangsten_wide_single[[paste0("Fuik ", n, " - Hoek")]] <- NA_character_
+        }
       }
-      temp_afvangsten_wide_single[[paste0("Fuik ", n, " - Hoek")]] <- NA_character_
+    }else{
+      cat("unexpected value detected \n")
+      next
     }
   }
   if(nrow(data_afvangsten_wide_single_recomb) == 0){
@@ -378,6 +390,10 @@ data_afvangsten_wide_multiple_recomb <- rbind(data_afvangsten_wide_multiple_1,
 # combineer data
 data_afvangsten_wide <- bind_rows(data_afvangsten_wide_single_recomb,
                                   data_afvangsten_wide_multiple_recomb)
+
+if("n" %in% names(data_afvangsten_wide)){
+  data_afvangsten_wide$n <- NULL
+}
 
 table(data_afvangsten_wide$eventID, useNA = "ifany")
 ```
