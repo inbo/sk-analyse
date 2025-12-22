@@ -538,6 +538,13 @@ afvangsten_per_fuik <- data_afvangsten %>%
                               ignore.case = TRUE),
                         "Afvangst",
                         "--AANVULLEN--")) %>% 
+  mutate(fuiklengte = case_when(grepl(pattern = "13m",
+                                      x = `Wat wil je melden`,
+                                      ignore.case = TRUE) ~ 13,
+                                grepl(pattern = "20m",
+                                      x = `Wat wil je melden`,
+                                      ignore.case = TRUE) ~ 20,
+                                TRUE ~ NA_integer_)) %>% 
   ungroup() %>% 
   mutate(fuiktype = case_when(fuiktype == "" & grepl(pattern = "bodem", 
                                                              Opmerkingen,
@@ -579,6 +586,9 @@ afvangsten_per_fuik <- data_afvangsten %>%
   mutate(max_fuikNr = case_when(is.infinite(max_fuikNr) ~ fuikNr2,
                                 TRUE ~ max_fuikNr)) %>% 
   select(-fuiktype_base, -fuiktype_info)
+
+
+  
 
 # filter events with max_fuikNr > 1 & with only fuikNr == "Fuik 1"
 # iterate every row to increase upto max_fuikNr
@@ -633,6 +643,7 @@ for(e in events_ids){
                Datum = Datum[1],
                Jaar = Jaar[1],
                actie = actie[1],
+               fuiklengte = fuiklengte[1],
                `Net verhoogd?` = `Net verhoogd?`[1],
                Type = Type[1],
                locationID = locationID[1],
