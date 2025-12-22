@@ -217,7 +217,7 @@ data_afvangsten <- data_afvangsten %>%
 data_afvangsten_long <- data_afvangsten %>% 
   filter(`Aantal fuiken (Totaal)` == 1) %>% 
   group_by(eventID, `Wat wil je melden`) %>%
-  mutate(`Aantal fuiken (Totaal)` = sum(as.numeric(`Aantal fuiken (Totaal)`), na.rm = TRUE)) %>% 
+  mutate(`Aantal fuiken (Totaal)` = n()) %>% 
   ungroup()
 
 # Check of de het max fuiknr groter is dan 1
