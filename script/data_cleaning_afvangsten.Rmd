@@ -480,24 +480,72 @@ afvangsten_per_fuik <- data_afvangsten %>%
   separate(name, c("fuikNr", "type"), " - ",
            convert = TRUE) %>% 
   pivot_wider(names_from = type, values_from = value) %>% 
-  separate(`Wat wil je melden`, c("actie", 
-                                  "fuiktype_1", 
-                                  "fuiktype_2", 
-                                  "fuiklengte"),
-           convert = TRUE) %>% 
+  mutate(fuiktype_base = case_when(grepl(pattern = "dubbele fuik",
+                                         x = `Wat wil je melden`,
+                                         ignore.case = TRUE) ~ "dubbele fuik",
+                                   grepl(pattern = "enkele fuik",
+                                         x = `Wat wil je melden`,
+                                         ignore.case = TRUE) ~ "enkele fuik",
+                                   `Wat wil je melden` == "Afvangst" ~ NA_character_,
+                                   `Wat wil je melden` == "Afvangst Vrijwilligers Natuurpunt" ~ NA_character_,
+                                   TRUE ~ "--AANVULLEN--")) %>% 
+  mutate(fuiktype_info = "(",
+         fuiktype_info = ifelse(grepl(pattern = "13m", 
+                                      `Wat wil je melden`, 
+                                      ignore.case = TRUE), 
+                                paste(fuiktype_info, "13m", sep = " + "), 
+                                fuiktype_info),
+         fuiktype_info = ifelse(grepl(pattern = "20m", 
+                                      `Wat wil je melden`, 
+                                      ignore.case = TRUE), 
+                                paste(fuiktype_info, "20m", sep = " + "), 
+                                fuiktype_info),
+         fuiktype_info = ifelse(grepl(pattern = "samengesteld", 
+                                      `Wat wil je melden`, 
+                                      ignore.case = TRUE), 
+                                paste(fuiktype_info, "samengesteld", sep = " + "), 
+                                fuiktype_info),
+         fuiktype_info = ifelse(grepl(pattern = "netinkeel", 
+                                      `Wat wil je melden`, 
+                                      ignore.case = TRUE), 
+                                paste(fuiktype_info, "netinkeel", sep = " + "), 
+                                fuiktype_info),
+         fuiktype_info = ifelse(grepl(pattern = "fijne mazen", 
+                                      `Wat wil je melden`, 
+                                      ignore.case = TRUE), 
+                                paste(fuiktype_info, "fijne mazen", sep = " + "), 
+                                fuiktype_info),
+         fuiktype_info = ifelse(grepl(pattern = "mazen 4 mm", 
+                                      `Wat wil je melden`, 
+                                      ignore.case = TRUE), 
+                                paste(fuiktype_info, "mazen 4 mm", sep = " + "), 
+                                fuiktype_info)
+  ) %>% 
+  mutate(fuiktype_info = gsub(pattern = "\\( \\+ ",
+                              replacement = "(",
+                              fuiktype_info),
+         fuiktype_info = paste0(fuiktype_info, ")"),
+         fuiktype_info = gsub(pattern = "\\(\\)",
+                              replacement = NA_character_,
+                              fuiktype_info)) %>% 
+  mutate(fuiktype = paste(fuiktype_base, fuiktype_info),
+         fuiktype = gsub(pattern = "NA",
+                         replacement = "",
+                         fuiktype),
+         fuiktype = trimws(fuiktype, which = "both")) %>% 
+  mutate(actie = ifelse(grepl(pattern = "Afvangst",
+                              x = `Wat wil je melden`,
+                              ignore.case = TRUE),
+                        "Afvangst",
+                        "--AANVULLEN--")) %>% 
   ungroup() %>% 
-  mutate(fuiktype_1 = case_when(is.na(fuiktype_1) & grepl(pattern = "bodem", 
-                                                          Opmerkingen,
-                                                          ignore.case = TRUE) ~ "salamanderfuik bodem",
-                                is.na(fuiktype_1) & grepl(pattern = "drijvend", 
-                                                          Opmerkingen,
-                                                          ignore.case = TRUE) ~ "salamanderfuik drijvend",
-                                TRUE ~ fuiktype_1),
-         fuiktype = paste(fuiktype_1,
-                          fuiktype_2)) %>% 
-  select(-fuiktype_1,
-         -fuiktype_2) %>%
-  ungroup() %>% 
+  mutate(fuiktype = case_when(fuiktype == "" & grepl(pattern = "bodem", 
+                                                             Opmerkingen,
+                                                             ignore.case = TRUE) ~ "salamanderfuik bodem",
+                              fuiktype == "" & grepl(pattern = "drijvend", 
+                                                            Opmerkingen,
+                                                            ignore.case = TRUE) ~ "salamanderfuik drijvend",
+                              TRUE ~ fuiktype)) %>% 
   mutate(L00 = as.numeric(L00),
          L0 = as.numeric(L0),
          L1 = as.numeric(L1),
@@ -512,7 +560,7 @@ afvangsten_per_fuik <- data_afvangsten %>%
                                    replacement = "",
                                    fuikNr))) %>% 
   ungroup()  %>% 
-  group_by(Datum, Locatie, fuikNr, Hoek, fuiklengte, fuiktype, Tijdstempel) %>% 
+  group_by(Datum, Locatie, fuikNr, Hoek, fuiktype, Tijdstempel) %>% 
   mutate(larven_fuik = sum(L00,L0,L1,L2, na.rm = TRUE),
          juveniel_fuik = sum(M1,M2, na.rm = TRUE),
          adult_fuik = sum(AM,AV, na.rm = TRUE),
@@ -529,7 +577,8 @@ afvangsten_per_fuik <- data_afvangsten %>%
   mutate(max_fuikNr = max(fuikNr2, na.rm = TRUE),
          no_fuiken = max(no_fuiken, na.rm = TRUE)) %>% 
   mutate(max_fuikNr = case_when(is.infinite(max_fuikNr) ~ fuikNr2,
-                                TRUE ~ max_fuikNr)) 
+                                TRUE ~ max_fuikNr)) %>% 
+  select(-fuiktype_base, -fuiktype_info)
 
 # filter events with max_fuikNr > 1 & with only fuikNr == "Fuik 1"
 # iterate every row to increase upto max_fuikNr
@@ -584,7 +633,6 @@ for(e in events_ids){
                Datum = Datum[1],
                Jaar = Jaar[1],
                actie = actie[1],
-               fuiklengte = fuiklengte[1],
                `Net verhoogd?` = `Net verhoogd?`[1],
                Type = Type[1],
                locationID = locationID[1],
