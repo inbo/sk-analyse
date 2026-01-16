@@ -353,7 +353,7 @@ for(i in 1:nrow(data_afvangsten_wide_single)){
 data_afvangsten_wide_multiple <- data_afvangsten_wide %>%
   filter(n > 1) %>% 
   group_by(eventID, `Wat wil je melden`) %>%
-  mutate(flag = `Aantal fuiken (Totaal)` > 12) %>% 
+  mutate(flag = `Aantal fuiken (Totaal)` >= 12) %>% 
   ungroup()
 
 table(data_afvangsten_wide_multiple$flag)
@@ -363,11 +363,16 @@ table(data_afvangsten_wide_multiple$flag)
 # Als er meer dan 12 fuiken zijn, dan is de data vermoedelijk verspreid over meerdere rijen
 # `Aantal fuiken (Totaal)` is dan de som van de `Aantal fuiken (Totaal)` van de verschillende rijen
 data_afvangsten_wide_multiple_1 <- data_afvangsten_wide_multiple %>% 
-  filter(flag == TRUE) %>% 
+  filter(flag == TRUE) 
+
+data_afvangsten_wide_multiple_1_recomb <- data_afvangsten %>% 
+  filter(eventID %in% data_afvangsten_wide_multiple_1$eventID) %>% 
   group_by(eventID, `Wat wil je melden`) %>%
-  mutate(`Aantal fuiken (Totaal)` = sum(`Aantal fuiken (Totaal)`, na.rm = TRUE)) %>% 
+  mutate(`Aantal fuiken (Totaal)` = sum(`Aantal fuiken (Totaal)`, na.rm = TRUE)) %>%
   ungroup() %>% 
-  select(-flag)
+  group_by(eventID, `Wat wil je melden`) %>% 
+  add_tally() %>%
+  ungroup()
 
 # Type 2: Minder dan 12 fuiken
 # Vermoedelijk gaat het hier over een effectieve fout in de data
@@ -384,16 +389,23 @@ data_afvangsten_wide_multiple_2 <- data_afvangsten_wide_multiple %>%
   ungroup() %>%
   select(-flag)
 
-data_afvangsten_wide_multiple_recomb <- rbind(data_afvangsten_wide_multiple_1,
-                                              data_afvangsten_wide_multiple_2)
+data_afvangsten_wide_multiple_recomb <- rbind(data_afvangsten_wide_multiple_1_recomb,
+                                              data_afvangsten_wide_multiple_2) %>% 
+  group_by(Tijdstempel, eventID, `Wat wil je melden`) %>%
+  filter(`Aantal fuiken (Totaal)` == max(`Aantal fuiken (Totaal)`, na.rm = TRUE)) %>% 
+  ungroup()
 
 # combineer data
 data_afvangsten_wide <- bind_rows(data_afvangsten_wide_single_recomb,
-                                  data_afvangsten_wide_multiple_recomb)
+                                  data_afvangsten_wide_multiple_recomb) 
 
 if("n" %in% names(data_afvangsten_wide)){
   data_afvangsten_wide$n <- NULL
 }
+
+data_afvangsten_wide <- data_afvangsten_wide %>% 
+  group_by(Tijdstempel, eventID, `Wat wil je melden`) %>% 
+  distinct()
 
 table(data_afvangsten_wide$eventID, useNA = "ifany")
 ```
@@ -470,17 +482,20 @@ events <- data_afvangsten %>%
 prep_fuiken <- function(df){
   df <- df %>% 
     tidylog::left_join(events, by = c("eventID", "Wat wil je melden")) %>% 
-    filter(!is.na(Tijdstempel)) %>% 
-    group_by(Datum, Locatie) %>% 
-    pivot_longer(contains("Fuik", ignore.case = FALSE), 
+    tidylog::filter(!is.na(Tijdstempel)) %>% 
+    tidylog::group_by(Datum, Locatie) %>% 
+    tidylog::pivot_longer(contains("Fuik", ignore.case = FALSE), 
                  values_to = "value",
                  values_ptypes = character()) %>% 
-    filter(!is.na(value)) %>% 
-    mutate(value = case_when(value == "-1" ~ NA_character_,
+    tidylog::ungroup() %>% 
+    tidylog::filter(!is.na(value)) %>% 
+    tidylog::mutate(value = case_when(value == "-1" ~ NA_character_,
                              TRUE ~ value)) %>% 
     separate(name, c("fuikNr", "type"), " - ",
              convert = TRUE) %>% 
-    pivot_wider(names_from = type, values_from = value) %>% 
+    tidylog::pivot_wider(names_from = type, 
+                         values_from = value, 
+                         values_fn = max) %>% 
     mutate(fuiktype_base = case_when(grepl(pattern = "dubbele fuik",
                                            x = `Wat wil je melden`,
                                            ignore.case = TRUE) ~ "dubbele fuik",
@@ -1143,7 +1158,6 @@ data_bijvangsten_int <- data_bijvangsten_int %>%
                                            TRUE ~ occurrenceID)) %>% 
   ungroup() %>% 
   dplyr::select(-rowid,
-                -`Invuller 2`, 
                 occurrenceID,
                 Tijdstempel,
                 Datum,
