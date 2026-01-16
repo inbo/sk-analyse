@@ -1126,11 +1126,11 @@ for(s in species){
   if("speciesKey" %in% names(temp_lookup)){
     temp_taxonkey <- temp_taxonkey %>% 
       add_row(species = s,
-              taxonkey = temp_lookup$speciesKey)
+              taxonkey = as.integer(temp_lookup$speciesKey))
   }else{
     temp_taxonkey <- temp_taxonkey %>% 
       add_row(species = s,
-              taxonkey = temp_lookup$genusKey)
+              taxonkey = as.integer(temp_lookup$genusKey))
   }
   
 }
