@@ -485,12 +485,12 @@ prep_fuiken <- function(df){
     tidylog::filter(!is.na(Tijdstempel)) %>% 
     tidylog::group_by(Datum, Locatie) %>% 
     tidylog::pivot_longer(contains("Fuik", ignore.case = FALSE), 
-                 values_to = "value",
-                 values_ptypes = character()) %>% 
+                          values_to = "value",
+                          values_ptypes = character()) %>% 
     tidylog::ungroup() %>% 
     tidylog::filter(!is.na(value)) %>% 
     tidylog::mutate(value = case_when(value == "-1" ~ NA_character_,
-                             TRUE ~ value)) %>% 
+                                      TRUE ~ value)) %>% 
     separate(name, c("fuikNr", "type"), " - ",
              convert = TRUE) %>% 
     tidylog::pivot_wider(names_from = type, 
@@ -777,12 +777,14 @@ write_csv(afvangsten_per_vangst, "./interim/afvangsten_per_vangst.csv")
 ```{r datacleaning - afvangsten voor gbif}
 afvangsten_vr_gbif_old <- read_csv("./output/gbif_stierkikker_vangsten.csv") %>% 
   dplyr::select(-Jaar,
-                -`Net verhoogd?`)
+                -`Net verhoogd?`) %>% 
+  dplyr::mutate(fuiklengte = as.character(fuiklengte))
 
 afvangsten_vr_gbif_int <- afvangsten_per_fuik %>%
   filter(Jaar > 2018) %>% 
   rename(lat = lat_grid,
          long = long_grid) %>%
+  mutate(Datum = as.Date(Datum, format = "%Y-%m-%d")) %>%
   select(-larven_fuik,
          -adult_fuik,
          -juveniel_fuik,
@@ -1013,7 +1015,8 @@ in_both <- afvangsten_vr_gbif %>%
 data_bijvangsten_old <- read_csv("./output/gbif_stierkikker_bijvangsten.csv") %>% 
   dplyr::select(-Jaar,
                 -`Net verhoogd?`,
-                -taxonkey)
+                -taxonkey) %>% 
+  dplyr::mutate(fuiklengte = as.character(fuiklengte))
 
 data <- data %>% 
   mutate(eventID = paste(format(as.Date(Datum, 
@@ -1078,7 +1081,6 @@ data_bijvangsten_int <- prep_fuiken(data) %>%
               select(Soort_Nieuw,
                      scientificname = Species),
             by = c("species" = "Soort_Nieuw")) %>% 
-  select(-species) %>% 
   ungroup() %>% 
   rowid_to_column(var = "rowid") %>% 
   mutate(lifestage = NA_character_,
@@ -1123,6 +1125,18 @@ data_bijvangsten_int <- prep_fuiken(data) %>%
                 -no_fuiken.y,
                 -contains("Foto"))
 
+species_missing <- data_bijvangsten_int %>% 
+  filter(is.na(scientificname)) %>% 
+  select(species, scientificname, Opmerkingen)
+
+# test if nrow(species_missing) is larger than 1% of nrow(data_bijvangsten_int)
+# and display the distinct of species_missing upon failure
+testthat::expect_true(nrow(species_missing) <= 0.01 * nrow(data_bijvangsten_int),
+                      info = paste("Missing species names for the following species:",
+                                   paste(unique(species_missing$species), collapse = ", ")))
+
+data_bijvangsten_int <- data_bijvangsten_int %>% 
+  filter(!is.na(scientificname))
 
 species <- unique(data_bijvangsten_int$scientificname)
 
@@ -1241,6 +1255,20 @@ testthat::expect_true(nrow(remaining_dup_bycatch) == 0)
 
 testthat::expect_true(n_distinct(data_bijvangsten$occurrenceID) == nrow(data_bijvangsten))
 testthat::expect_true(n_distinct(data_bijvangsten$eventID) == nrow(events3))
+
+fistools::colcompare(data_bijvangsten_old, data_bijvangsten)
+
+data_bijvangsten <- data_bijvangsten %>% 
+  select(`Wat wil je melden`,
+         -`Aantal fuiken (Totaal)`,
+         -max_fuikNr.x, 
+         -no_fuiken.x, 
+         -fuiktype_base, 
+         -fuiktype_info, 
+         -max_fuikNr.y, 
+         -species, )
+
+fistools::colcompare(data_bijvangsten_old, data_bijvangsten)
 ```
 
 ```{r filter data currently published}
@@ -1286,9 +1314,11 @@ afvangsten_per_fuik <- afvangsten_per_fuik %>%
          Datum = as.character(Datum),
          Jaar = as.integer(Jaar))
 
-afvangsten_per_fuik_overlap <- bind_rows(afvangsten_per_fuik_pre2018, afvangsten_per_fuik) %>% 
+afvangsten_per_fuik_overlap <- afvangsten_per_fuik %>% 
   filter(Datum <= max(afvangsten_per_fuik_pre2018$Datum, na.rm = TRUE)) %>% 
   bind_rows(afvangsten_per_fuik_pre2018) %>%
+  group_by(eventID) %>% 
+  coalesce() %>% 
   mutate(location_temp = as.integer(substr(eventID, 12, 16))) %>% 
   tidylog::distinct(eventID, fuikNr, .keep_all = TRUE) 
 
